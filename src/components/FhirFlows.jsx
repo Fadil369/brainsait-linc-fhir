@@ -1,136 +1,79 @@
-import { COLORS } from "../data/constants.js";
-import { LINC_AGENTS } from "../data/agents.js";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { LINC_AGENTS } from "@/data/agents";
 
 export default function FhirFlows({ flows }) {
   return (
     <div>
-      <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 6px" }}>
-          FHIR R4 Integration Flows
-        </h2>
-        <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>
+      <div className="mb-5">
+        <h2 className="text-xl font-bold text-white">FHIR R4 Integration Flows</h2>
+        <p className="text-xs text-gray-500">
           Clinical workflows mapped to FHIR resources, LINC agents, and NPHIES
           compliance.
         </p>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {flows.map((flow, i) => (
-          <div
-            key={i}
-            style={{
-              background: COLORS.glassWhite,
-              border: `1px solid ${COLORS.glassBorder}`,
-              borderRadius: 12,
-              padding: "14px 20px",
-              display: "grid",
-              gridTemplateColumns: "200px 1fr 1fr auto",
-              alignItems: "center",
-              gap: 16,
-            }}
-          >
-            <div style={{ fontWeight: 600, fontSize: 13, color: "#fff" }}>
-              {flow.flow}
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-              {flow.resources.map((r) => (
-                <span
-                  key={r}
-                  style={{
-                    background: "rgba(43,108,184,0.15)",
-                    border: "1px solid rgba(43,108,184,0.3)",
-                    borderRadius: 4,
-                    padding: "2px 8px",
-                    fontSize: 11,
-                    color: "#7fb3f5",
-                    fontFamily: "monospace",
-                  }}
-                >
-                  {r}
-                </span>
-              ))}
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-              {flow.agents.map((a) => {
-                const ag = LINC_AGENTS.find((l) => l.id === a);
-                return ag ? (
-                  <span
-                    key={a}
-                    style={{
-                      background: "rgba(14,165,233,0.1)",
-                      border: "1px solid rgba(14,165,233,0.2)",
-                      borderRadius: 4,
-                      padding: "2px 8px",
-                      fontSize: 11,
-                      color: "#0ea5e9",
-                    }}
+
+      <div className="space-y-2.5">
+        {flows.map((flow, i) => {
+          const agents = flow.agents
+            .map((a) => LINC_AGENTS.find((l) => l.id === a))
+            .filter(Boolean);
+          return (
+            <Card
+              key={i}
+              className="flex items-center gap-4 border-white/10 bg-white/5 p-4 backdrop-blur-sm"
+            >
+              <div className="min-w-[170px] text-sm font-semibold text-white">
+                {flow.flow}
+              </div>
+              <div className="flex flex-1 flex-wrap gap-1.5">
+                {flow.resources.map((r) => (
+                  <Badge
+                    key={r}
+                    variant="outline"
+                    className="border-blue-800/30 bg-blue-900/15 px-2 py-0 font-mono text-[11px] text-blue-300"
                   >
-                    {ag.icon} {ag.label}
-                  </span>
-                ) : null;
-              })}
-            </div>
-            {flow.nphies ? (
-              <span
-                style={{
-                  background: "rgba(234,88,12,0.15)",
-                  border: "1px solid rgba(234,88,12,0.3)",
-                  borderRadius: 5,
-                  padding: "3px 10px",
-                  fontSize: 11,
-                  color: "#ea580c",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                🏥 NPHIES
-              </span>
-            ) : (
-              <span
-                style={{
-                  background: "rgba(100,116,139,0.1)",
-                  border: "1px solid rgba(100,116,139,0.2)",
-                  borderRadius: 5,
-                  padding: "3px 10px",
-                  fontSize: 11,
-                  color: "#64748b",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Internal
-              </span>
-            )}
-          </div>
-        ))}
+                    {r}
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex flex-1 flex-wrap gap-1.5">
+                {agents.map((ag) =>
+                  ag ? (
+                    <Badge
+                      key={ag.id}
+                      variant="outline"
+                      className="border-cyan-500/20 bg-cyan-500/10 px-2 py-0 text-[11px] text-cyan-400"
+                    >
+                      {ag.icon} {ag.label}
+                    </Badge>
+                  ) : null
+                )}
+              </div>
+              {flow.nphies ? (
+                <Badge className="shrink-0 border-orange-500/30 bg-orange-500/15 text-[11px] text-orange-400">
+                  🏥 NPHIES
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 border-gray-600/20 bg-gray-500/10 text-[11px] text-gray-400"
+                >
+                  Internal
+                </Badge>
+              )}
+            </Card>
+          );
+        })}
       </div>
 
-      <div
-        style={{
-          marginTop: 24,
-          background: COLORS.glassWhite,
-          border: `1px solid ${COLORS.glassBorder}`,
-          borderRadius: 12,
-          padding: 20,
-        }}
-      >
-        <h3
-          style={{
-            fontSize: 14,
-            fontWeight: 600,
-            marginBottom: 16,
-            color: "#0ea5e9",
-          }}
-        >
+      <Card className="mt-6 border-white/10 bg-white/5 p-5 backdrop-blur-sm">
+        <h3 className="mb-4 text-sm font-semibold text-cyan-400">
           Unified FHIR Architecture
         </h3>
-        <div
-          style={{
-            fontFamily: "monospace",
-            fontSize: 11,
-            color: "#94a3b8",
-            lineHeight: 2,
-            whiteSpace: "pre",
-            overflowX: "auto",
-          }}
-        >
+        <Separator className="mb-4 bg-white/10" />
+        <pre className="overflow-x-auto font-mono text-[11px] leading-relaxed text-gray-400">
 {`  Client / BSMA Web App
        │  SMART on FHIR OAuth2 (brainsait.io/auth/oauth2)
        ▼
@@ -150,8 +93,8 @@ export default function FhirFlows({ flows }) {
        │
        └── /api/compliance/* ► givc-compliance + givc-compliance-monitor
                                └─ AuditEvent, Consent → R2 (encrypted) + KV`}
-        </div>
-      </div>
+        </pre>
+      </Card>
     </div>
   );
 }

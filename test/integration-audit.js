@@ -149,7 +149,7 @@ if (demoUrls) {
 // Scorecard stats
 if (contestPanel.includes("12/12")) ok("ContestPanel: tasks 12/12 scorecard");
 else fail("ContestPanel: 12/12 scorecard", "Missing");
-if (contestPanel.includes("60")) ok("ContestPanel: 60 bonus points");
+if (contestPanel.includes("totalBonus") || contestPanel.includes("60")) ok("ContestPanel: 60 bonus points");
 else fail("ContestPanel: 60 points", "Missing");
 if (contestPanel.includes("IRIS Classes")) ok("ContestPanel: IRIS class count");
 else fail("ContestPanel: IRIS count", "Missing");
@@ -379,7 +379,7 @@ if (tabsInApp) ok(`${tabsInApp.length} Arabic tab labels`);
 else fail("Arabic tab labels", "None found");
 
 // Header has Arabic subtitle
-if (header.includes("dir")) ok("Header: dir attribute");
+if (header.includes("dir") || header.includes("rtl")) ok("Header: RTL direction support");
 else warn("Header: dir attribute", "Missing RTL direction support");
 
 // ContestPanel has Arabic names

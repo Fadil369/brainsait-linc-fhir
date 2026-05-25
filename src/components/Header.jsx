@@ -1,85 +1,34 @@
-import { COLORS } from "../data/constants.js";
+import { Badge } from "@/components/ui/badge";
+import { Brain, Cloud, Activity } from "lucide-react";
 
 export default function Header({ workerCount, agentCount }) {
   return (
-    <div
-      dir="ltr"
-      style={{
-        background: "rgba(10,22,40,0.95)",
-        borderBottom: "1px solid rgba(43,108,184,0.3)",
-        padding: "20px 32px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
-        backdropFilter: "blur(20px)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-        <div
-          style={{
-            width: 44,
-            height: 44,
-            background: "linear-gradient(135deg, #2b6cb8, #0ea5e9)",
-            borderRadius: 10,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 22,
-          }}
-        >
-          🧠
-        </div>
-        <div>
-          <div
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: "#fff",
-              letterSpacing: "-0.3px",
-            }}
-          >
-            BrainSAIT · LINC Agent Unification
+    <header className="sticky top-0 z-50 border-b border-blue-900/30 bg-[#0a1628]/95 backdrop-blur-xl">
+      <div className="flex items-center justify-between px-8 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 text-lg shadow-lg shadow-blue-600/20">
+            <Brain className="h-5 w-5 text-white" />
           </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: "#0ea5e9",
-              fontFamily: "monospace",
-            }}
-          >
-            InterSystems FHIR R4 · NPHIES · Cloudflare Edge · OID 1.3.6.1.4.1.61026
+          <div>
+            <h1 className="text-lg font-bold tracking-tight text-white">
+              BrainSAIT · LINC Agent Unification
+            </h1>
+            <p className="font-mono text-xs text-cyan-400">
+              InterSystems FHIR R4 · NPHIES · Cloudflare Edge · OID 1.3.6.1.4.1.61026
+            </p>
           </div>
         </div>
+        <div className="flex gap-2">
+          <Badge variant="outline" className="border-cyan-500/30 bg-cyan-500/10 text-cyan-400">
+            <Cloud className="mr-1 h-3 w-3" />
+            {workerCount} Workers Found
+          </Badge>
+          <Badge variant="outline" className="border-orange-500/30 bg-orange-500/10 text-orange-400">
+            <Activity className="mr-1 h-3 w-3" />
+            {agentCount} LINC Agents
+          </Badge>
+        </div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
-        <span
-          style={{
-            background: "rgba(14,165,233,0.15)",
-            border: "1px solid rgba(14,165,233,0.3)",
-            borderRadius: 6,
-            padding: "4px 10px",
-            fontSize: 11,
-            color: "#0ea5e9",
-          }}
-        >
-          {workerCount} Workers Found
-        </span>
-        <span
-          style={{
-            background: "rgba(234,88,12,0.15)",
-            border: "1px solid rgba(234,88,12,0.3)",
-            borderRadius: 6,
-            padding: "4px 10px",
-            fontSize: 11,
-            color: "#ea580c",
-          }}
-        >
-          {agentCount} LINC Agents
-        </span>
-      </div>
-    </div>
+    </header>
   );
 }

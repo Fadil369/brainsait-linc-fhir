@@ -1,5 +1,8 @@
+"use client";
+
 import { useState } from "react";
-import AgentCard from "./AgentCard.jsx";
+import { Input } from "@/components/ui/input";
+import AgentCard from "./AgentCard";
 
 export default function AgentPanel({ agents }) {
   const [selectedAgent, setSelectedAgent] = useState(null);
@@ -16,77 +19,44 @@ export default function AgentPanel({ agents }) {
 
   return (
     <div>
-      <div
-        style={{
-          marginBottom: 20,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
+      <div className="mb-5 flex items-center justify-between">
         <div>
-          <h2
-            style={{ fontSize: 20, fontWeight: 700, margin: "0 0 6px" }}
-          >
+          <h2 className="text-xl font-bold text-white">
             Unified LINC Agent Registry
           </h2>
-          <p style={{ color: "#64748b", fontSize: 13, margin: 0 }}>
+          <p className="text-xs text-gray-500">
             All agents discovered across CF Workers, Notion, and production
             deployments — mapped to FHIR R4 resources.
           </p>
         </div>
-        <input
+        <Input
           type="text"
           placeholder="Search agents..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           aria-label="Search LINC agents"
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: 8,
-            padding: "8px 14px",
-            color: "#e2e8f0",
-            fontSize: 13,
-            fontFamily: "inherit",
-            outline: "none",
-            width: 240,
-          }}
+          className="w-60 border-white/10 bg-white/5 text-sm text-gray-200 placeholder:text-gray-600"
         />
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-          gap: 16,
-        }}
-      >
-        {filtered.length === 0 && (
-          <div
-            style={{
-              gridColumn: "1 / -1",
-              textAlign: "center",
-              padding: 40,
-              color: "#64748b",
-              fontSize: 14,
-            }}
-          >
-            No agents match &quot;{searchTerm}&quot;
-          </div>
-        )}
-        {filtered.map((agent) => (
-          <AgentCard
-            key={agent.id}
-            agent={agent}
-            isSelected={selectedAgent?.id === agent.id}
-            onSelect={(a) =>
-              setSelectedAgent(
-                selectedAgent?.id === a.id ? null : a
-              )
-            }
-          />
-        ))}
-      </div>
+
+      {filtered.length === 0 ? (
+        <div className="py-10 text-center text-sm text-gray-500">
+          No agents match &quot;{searchTerm}&quot;
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((agent) => (
+            <AgentCard
+              key={agent.id}
+              agent={agent}
+              isSelected={selectedAgent?.id === agent.id}
+              onSelect={(a) =>
+                setSelectedAgent(selectedAgent?.id === a.id ? null : a)
+              }
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,189 +1,102 @@
-import { COLORS, TIER_COLORS } from "../data/constants.js";
-import { statusColor } from "../utils/format.js";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { statusBadge } from "@/components/ui/brainsait";
 
 export default function AgentCard({ agent, isSelected, onSelect }) {
   return (
-    <div
+    <Card
+      className={`cursor-pointer border bg-white/5 backdrop-blur-sm transition-all duration-200 hover:bg-white/[0.08] ${
+        isSelected ? `shadow-lg` : "border-white/10"
+      }`}
+      style={{
+        borderColor: isSelected ? agent.color : undefined,
+        boxShadow: isSelected ? `0 0 20px ${agent.color}22` : undefined,
+      }}
       onClick={() => onSelect(agent)}
-      role="button"
-      tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onSelect(agent);
       }}
+      tabIndex={0}
+      role="button"
       aria-expanded={isSelected}
-      style={{
-        background: COLORS.glassWhite,
-        border: `1px solid ${
-          isSelected ? agent.color : COLORS.glassBorder
-        }`,
-        borderRadius: 12,
-        padding: "18px 20px",
-        cursor: "pointer",
-        transition: "all 0.2s",
-        boxShadow: isSelected ? `0 0 20px ${agent.color}22` : "none",
-      }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          marginBottom: 10,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 24 }}>{agent.icon}</span>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: "#fff" }}>
-              {agent.label}
-            </div>
-            <div
-              style={{
-                fontSize: 11,
-                color: agent.color,
-                direction: "rtl",
-              }}
-            >
-              {agent.arabic}
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: statusColor(agent.health),
-              flexShrink: 0,
-            }}
-            aria-label={`Status: ${agent.health}`}
-          />
-          <span
-            style={{
-              background: `${TIER_COLORS[agent.tier]}22`,
-              border: `1px solid ${TIER_COLORS[agent.tier]}44`,
-              borderRadius: 5,
-              padding: "2px 8px",
-              fontSize: 10,
-              color: TIER_COLORS[agent.tier],
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
-            {agent.tier}
-          </span>
-        </div>
-      </div>
-      <p
-        style={{
-          fontSize: 12,
-          color: "#94a3b8",
-          margin: "0 0 12px",
-          lineHeight: 1.5,
-        }}
-      >
-        {agent.description}
-      </p>
-      <div
-        style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 10 }}
-      >
-        {agent.fhirResources.map((r) => (
-          <span
-            key={r}
-            style={{
-              background: "rgba(14,165,233,0.1)",
-              border: "1px solid rgba(14,165,233,0.2)",
-              borderRadius: 4,
-              padding: "1px 7px",
-              fontSize: 10,
-              color: "#0ea5e9",
-              fontFamily: "monospace",
-            }}
-          >
-            {r}
-          </span>
-        ))}
-      </div>
-      {isSelected && (
-        <div
-          style={{
-            marginTop: 12,
-            borderTop: "1px solid rgba(255,255,255,0.08)",
-            paddingTop: 12,
-          }}
-        >
-          <div style={{ marginBottom: 8 }}>
-            <div
-              style={{
-                fontSize: 11,
-                color: "#64748b",
-                marginBottom: 4,
-              }}
-            >
-              CF Workers
-            </div>
-            {agent.cfWorkers.map((w) => (
-              <div
-                key={w}
-                style={{
-                  fontFamily: "monospace",
-                  fontSize: 11,
-                  color: "#0ea5e9",
-                  padding: "2px 0",
-                }}
-              >
-                ⚡ {w}
+      <div className="p-5">
+        <div className="mb-2.5 flex items-start justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="text-2xl">{agent.icon}</span>
+            <div>
+              <div className="text-sm font-bold text-white">{agent.label}</div>
+              <div className="text-xs" style={{ color: agent.color, direction: "rtl" }}>
+                {agent.arabic}
               </div>
-            ))}
+            </div>
           </div>
-          <div style={{ marginBottom: 8 }}>
-            <div
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                agent.health === "operational" ? "bg-green-500" : "bg-red-500"
+              }`}
+              aria-label={`Status: ${agent.health}`}
+            />
+            <Badge
+              variant="outline"
+              className="px-2 py-0 text-[10px] uppercase tracking-wider"
               style={{
-                fontSize: 11,
-                color: "#64748b",
-                marginBottom: 4,
+                background: `${
+                  agent.tier === "orchestrator" ? "#2b6cb8" : "#0ea5e9"
+                }22`,
+                borderColor: `${
+                  agent.tier === "orchestrator" ? "#2b6cb8" : "#0ea5e9"
+                }44`,
+                color: agent.tier === "orchestrator" ? "#2b6cb8" : "#0ea5e9",
               }}
             >
-              API Endpoints
-            </div>
-            {agent.endpoints.map((e) => (
-              <div
-                key={e}
-                style={{
-                  fontFamily: "monospace",
-                  fontSize: 11,
-                  color: "#94a3b8",
-                  padding: "2px 0",
-                }}
-              >
-                {e}
-              </div>
-            ))}
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: 11,
-                color: "#64748b",
-                marginBottom: 4,
-              }}
-            >
-              InterSystems IRIS
-            </div>
-            <div
-              style={{
-                fontFamily: "monospace",
-                fontSize: 10,
-                color: "#ea580c",
-                wordBreak: "break-all",
-              }}
-            >
-              {agent.intersystems}
-            </div>
+              {agent.tier}
+            </Badge>
           </div>
         </div>
-      )}
-    </div>
+
+        <p className="mb-3 text-xs leading-relaxed text-gray-400">{agent.description}</p>
+
+        <div className="mb-2.5 flex flex-wrap gap-1.5">
+          {agent.fhirResources.map((r) => (
+            <Badge
+              key={r}
+              variant="outline"
+              className="border-cyan-500/20 bg-cyan-500/10 px-2 py-0 font-mono text-[10px] text-cyan-400"
+            >
+              {r}
+            </Badge>
+          ))}
+        </div>
+
+        {isSelected && (
+          <div className="mt-3 space-y-3 border-t border-white/10 pt-3">
+            <div>
+              <p className="mb-1 text-[11px] text-gray-500">CF Workers</p>
+              {agent.cfWorkers.map((w) => (
+                <p key={w} className="py-0.5 font-mono text-[11px] text-cyan-400">
+                  ⚡ {w}
+                </p>
+              ))}
+            </div>
+            <div>
+              <p className="mb-1 text-[11px] text-gray-500">API Endpoints</p>
+              {agent.endpoints.map((e) => (
+                <p key={e} className="py-0.5 font-mono text-[11px] text-gray-400">
+                  {e}
+                </p>
+              ))}
+            </div>
+            <div>
+              <p className="mb-1 text-[11px] text-gray-500">InterSystems IRIS</p>
+              <p className="break-all font-mono text-[10px] text-orange-500">
+                {agent.intersystems}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
