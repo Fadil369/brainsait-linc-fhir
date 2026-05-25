@@ -8,7 +8,7 @@ export const FHIR_FLOWS = [
   { flow: "Audit Logging", resources: ["AuditEvent", "Consent"], agents: ["compliancelinc"], nphies: false },
   { flow: "Care Coordination", resources: ["CarePlan", "Appointment", "Encounter"], agents: ["masterlinc", "healthcarelinc", "clinicallinc"], nphies: false },
   { flow: "Medication Reconciliation", resources: ["MedicationRequest", "MedicationDispense", "MedicationStatement"], agents: ["clinicallinc", "doculinc"], nphies: false },
-  { flow: "Lab Results", resources: ["DiagnosticReport", "Observation", "Specimen"], agents: ["radiolinc", "clinicalDecision"], nphies: false },
+  { flow: "Lab Results", resources: ["DiagnosticReport", "Observation", "Specimen"], agents: ["radiolinc", "clinicallinc"], nphies: false },
   { flow: "Discharge Summary", resources: ["Composition", "Encounter", "Condition", "MedicationRequest"], agents: ["doculinc", "clinicallinc"], nphies: false },
   { flow: "Appointment Scheduling", resources: ["Appointment", "Schedule", "Slot"], agents: ["healthcarelinc"], nphies: false },
 ];
