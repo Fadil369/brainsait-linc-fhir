@@ -1,0 +1,38 @@
+# Vault & Secrets
+.secure-vault/
+.env
+.env.*
+*.key
+*.pem
+*.p12
+
+# Agent credentials
+.openclaw/credentials/
+.openclaw/.env
+.openclaw/.env.*
+.cline/config.json
+.opencode/config/
+.opencode/.env
+
+# Logs
+.openclaw/logs/
+**/logs/
+**/*.log
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# Build output
+dist/
+node_modules/
+
+# Wrangler state
+.wrangler/state/
+.wrangler/tmp/
+
+# IDE
+.vscode/
+.idea/
+
