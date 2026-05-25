@@ -60,7 +60,7 @@ export default {
     }
 
     if (path === "/api/agents") {
-      const { LINC_AGENTS } = await import("../src/data/agents.js");
+      const { LINC_AGENTS } = await import("../../src/data/agents.js");
       return new Response(JSON.stringify(LINC_AGENTS), {
         headers: {
           "content-type": "application/json",
@@ -70,7 +70,7 @@ export default {
     }
 
     if (path === "/api/workers") {
-      const { CF_WORKERS } = await import("../src/data/workers.js");
+      const { CF_WORKERS } = await import("../../src/data/workers.js");
       return new Response(JSON.stringify(CF_WORKERS), {
         headers: {
           "content-type": "application/json",
@@ -80,7 +80,7 @@ export default {
     }
 
     if (path === "/api/fhir/flows") {
-      const { FHIR_FLOWS } = await import("../src/data/fhir-flows.js");
+      const { FHIR_FLOWS } = await import("../../src/data/fhir-flows.js");
       return new Response(JSON.stringify(FHIR_FLOWS), {
         headers: {
           "content-type": "application/json",
@@ -90,7 +90,7 @@ export default {
     }
 
     if (path === "/api/intersystems") {
-      const { INTERSYSTEMS_ARCH } = await import("../src/data/intersystems.js");
+      const { INTERSYSTEMS_ARCH } = await import("../../src/data/intersystems.js");
       return new Response(JSON.stringify(INTERSYSTEMS_ARCH), {
         headers: {
           "content-type": "application/json",
