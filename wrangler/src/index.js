@@ -14,6 +14,7 @@ import { handleEcosystem } from "./ecosystem-proxy.js";
 import { handleNphiesProxy } from "./agents/nphies-oracle-proxy.js";
 import { handlePatient } from "./agents/patient-api.js";
 import { handleDomains } from "./agents/domain-api.js";
+import { handleFHIR } from "./agents/fhir-server.js";
 
 const CONTEST_AGENTS = {
   "/api/contest/summary": handleSummary,
@@ -104,6 +105,11 @@ export default {
           "access-control-allow-origin": "*",
         },
       });
+    }
+
+    // FHIR R4 Server — real patient persistence on D1
+    if (path.startsWith("/fhir") || path === "/metadata") {
+      return handleFHIR(request, env);
     }
 
     // NPHIES & Oracle live data proxy
