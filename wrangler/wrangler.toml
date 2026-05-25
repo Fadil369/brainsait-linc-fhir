@@ -6,6 +6,10 @@ compatibility_flags = ["nodejs_compat"]
 account_id = "d7b99530559ab4f2545e9bdc72a7ab9b"
 workers_dev = true
 
+routes = [
+  { pattern = "iris-fhir.brainsait.org", custom_domain = true }
+]
+
 [triggers]
 crons = ["*/10 * * * *"]
 
@@ -14,6 +18,9 @@ enabled = true
 
 [env.production]
 name = "brainsait-linc-fhir-prod"
+routes = [
+  { pattern = "iris-fhir.brainsait.org", custom_domain = true }
+]
 
 [env.staging]
 name = "brainsait-linc-fhir-staging"
