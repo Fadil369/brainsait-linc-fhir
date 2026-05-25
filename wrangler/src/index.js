@@ -11,6 +11,7 @@ import { handleLabExplainer } from "./agents/lab-explainer.js";
 import { handleNLQuery } from "./agents/nl-query.js";
 import { handleSDOHReferral } from "./agents/sdoh-referral.js";
 import { handleEcosystem } from "./ecosystem-proxy.js";
+import { handleNphiesProxy } from "./agents/nphies-oracle-proxy.js";
 
 const CONTEST_AGENTS = {
   "/api/contest/summary": handleSummary,
@@ -99,6 +100,11 @@ export default {
           "access-control-allow-origin": "*",
         },
       });
+    }
+
+    // NPHIES & Oracle live data proxy
+    if (path.startsWith("/api/nphies") || path.startsWith("/api/oracle")) {
+      return handleNphiesProxy(request, env);
     }
 
     // Ecosystem proxy — routes to HNH, NPHIES, BASMA, GIVC, SBS, Oracle, etc.
