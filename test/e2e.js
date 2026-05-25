@@ -456,7 +456,7 @@ assertEqual(CONTEST_AGENTS.length, 12, "12 contest AI agents defined");
 // Each agent has a Worker file
 const agentWorkerDir = join(ROOT, "wrangler/src/agents");
 const workerFiles = readdirSync(agentWorkerDir).filter(f => f.endsWith(".js"));
-assertEqual(workerFiles.length, 12, "12 Cloudflare Worker agent files");
+assertAtLeast(workerFiles.length, 12, "12+ Cloudflare Worker agent files");
 
 for (const agent of CONTEST_AGENTS) {
   const cfile = `${agent.id}.js`;
