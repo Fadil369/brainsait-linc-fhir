@@ -3,6 +3,7 @@ import { COLORS } from "../data/constants.js";
 export default function Header({ workerCount, agentCount }) {
   return (
     <div
+      dir="ltr"
       style={{
         background: "rgba(10,22,40,0.95)",
         borderBottom: "1px solid rgba(43,108,184,0.3)",
