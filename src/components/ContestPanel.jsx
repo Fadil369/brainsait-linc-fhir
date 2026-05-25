@@ -126,6 +126,34 @@ export default function ContestPanel() {
           </Card>
         ))}
       </div>
+
+      {/* Ecosystem Integration */}
+      <Card className="mt-6 border-white/10 bg-white/5 p-5 backdrop-blur-sm">
+        <h3 className="mb-4 text-sm font-semibold text-purple-400">
+          🌐 BrainSAIT Health Ecosystem — 9 Integrated Backends
+        </h3>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { id: "hnh", label: "HNH Hospitals", desc: "Al Ribat / Gharnata — real patient records", color: "text-blue-400" },
+            { id: "nphies", label: "NPHIES Saudi", desc: "National claims network — real-time eligibility", color: "text-green-400" },
+            { id: "basma", label: "BASMA Voice", desc: "Arabic/English TTS — ElevenLabs AI voice", color: "text-yellow-400" },
+            { id: "givc", label: "GIVC Platform", desc: "Healthcare platform — CDS + LINC workflows", color: "text-cyan-400" },
+            { id: "sbs", label: "SBS Billing", desc: "Subscription billing — insurance coverage", color: "text-orange-400" },
+            { id: "oracle", label: "Oracle Bridge", desc: "6 hospital EHRs — legacy system integration", color: "text-red-400" },
+            { id: "claimlinc", label: "ClaimLinc", desc: "NPHIES claims API — submission + tracking", color: "text-purple-400" },
+            { id: "portals", label: "Brainsait Portals", desc: "Unified portal gateway — SSO + routing", color: "text-pink-400" },
+            { id: "healthcare", label: "Healthcare GW", desc: "FHIR gateway — multi-backend routing", color: "text-indigo-400" },
+          ].map((b) => (
+            <a key={b.id} href={`/api/ecosystem/${b.id}`} target="_blank" rel="noopener noreferrer"
+              className="rounded-lg border border-white/10 bg-white/[0.03] p-3 hover:bg-white/[0.06] transition-colors"
+            >
+              <div className={`text-sm font-semibold ${b.color}`}>{b.label}</div>
+              <div className="mt-0.5 text-[11px] text-gray-500">{b.desc}</div>
+              <code className="mt-1 block text-[10px] text-gray-600">/api/ecosystem/{b.id}</code>
+            </a>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }

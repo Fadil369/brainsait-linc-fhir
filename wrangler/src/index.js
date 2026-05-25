@@ -10,6 +10,7 @@ import { handleImagingFollowup } from "./agents/imaging-followup.js";
 import { handleLabExplainer } from "./agents/lab-explainer.js";
 import { handleNLQuery } from "./agents/nl-query.js";
 import { handleSDOHReferral } from "./agents/sdoh-referral.js";
+import { handleEcosystem } from "./ecosystem-proxy.js";
 
 const CONTEST_AGENTS = {
   "/api/contest/summary": handleSummary,
@@ -44,6 +45,7 @@ export default {
           nphies: true,
           intersystems: "BRAINSAIT",
           contestEndpoints: agents,
+          ecosystemBackends: 9,
         }),
         {
           headers: {
@@ -97,6 +99,11 @@ export default {
           "access-control-allow-origin": "*",
         },
       });
+    }
+
+    // Ecosystem proxy — routes to HNH, NPHIES, BASMA, GIVC, SBS, Oracle, etc.
+    if (path.startsWith("/api/ecosystem")) {
+      return handleEcosystem(request, env);
     }
 
     return new Response("BrainSAIT LINC FHIR Unified API", {
