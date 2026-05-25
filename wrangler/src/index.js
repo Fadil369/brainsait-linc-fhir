@@ -12,6 +12,8 @@ import { handleNLQuery } from "./agents/nl-query.js";
 import { handleSDOHReferral } from "./agents/sdoh-referral.js";
 import { handleEcosystem } from "./ecosystem-proxy.js";
 import { handleNphiesProxy } from "./agents/nphies-oracle-proxy.js";
+import { handlePatient } from "./agents/patient-api.js";
+import { handleDomains } from "./agents/domain-api.js";
 
 const CONTEST_AGENTS = {
   "/api/contest/summary": handleSummary,
@@ -46,7 +48,9 @@ export default {
           nphies: true,
           intersystems: "BRAINSAIT",
           contestEndpoints: agents,
-          ecosystemBackends: 9,
+          ecosystemBackends: 29,
+          patientEndpoints: ["/api/patient", "/api/patient/timeline", "/api/patient/summary", "/api/patient/medications", "/api/patient/labs", "/api/patient/plan"],
+          domainsLinked: "brainsait.org ↔ elfadil.com",
         }),
         {
           headers: {
@@ -105,6 +109,16 @@ export default {
     // NPHIES & Oracle live data proxy
     if (path.startsWith("/api/nphies") || path.startsWith("/api/oracle")) {
       return handleNphiesProxy(request, env);
+    }
+
+    // Patient-centric unified API
+    if (path.startsWith("/api/patient")) {
+      return handlePatient(request, env);
+    }
+
+    // Cross-domain bridge: brainsait.org ↔ elfadil.com
+    if (path.startsWith("/api/domains")) {
+      return handleDomains(request, env);
     }
 
     // Ecosystem proxy — routes to HNH, NPHIES, BASMA, GIVC, SBS, Oracle, etc.

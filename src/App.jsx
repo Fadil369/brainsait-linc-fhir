@@ -14,8 +14,10 @@ import WorkerList from "./components/WorkerList.jsx";
 import InterSystemsPanel from "./components/InterSystemsPanel.jsx";
 import UnificationPlan from "./components/UnificationPlan.jsx";
 import ContestPanel from "./components/ContestPanel.jsx";
+import PortalHub from "./components/PortalHub.jsx";
 
 const TABS = [
+  { id: "patient", label: "🖥️ Portals", arabic: "البوابات" },
   { id: "agents", label: "Agents", arabic: "العملاء" },
   { id: "fhir", label: "FHIR Flows", arabic: "التدفقات" },
   { id: "contest", label: "🏆 Contest", arabic: "المسابقة" },
@@ -25,7 +27,7 @@ const TABS = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState("agents");
+  const [activeTab, setActiveTab] = useState("patient");
   const [ecosystem, setEcosystem] = useState(null);
   const [nphies, setNphies] = useState(null);
   const [loading, setLoading] = useState("");
@@ -98,6 +100,7 @@ export default function App() {
         />
         <TabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
         <div className="px-8 py-7">
+          {activeTab === "patient" && <PortalHub />}
           {activeTab === "agents" && <AgentPanel agents={LINC_AGENTS} />}
           {activeTab === "fhir" && <FhirFlows flows={FHIR_FLOWS} />}
           {activeTab === "contest" && <ContestPanel />}
