@@ -17,6 +17,23 @@ import { handleDomains } from "./agents/domain-api.js";
 import { handleOracleBridge } from "./agents/oracle-bridge-connector.js";
 import { handleOracleLogin } from "./agents/oracle-login.js";
 import { handleFHIR } from "./agents/fhir-server.js";
+import { handleOrchestrate, registerHandlers } from "./agents/orchestrator.js";
+
+// Register handlers with the orchestrator for direct function calls
+registerHandlers({
+  summary: handleSummary,
+  "prior-auth": handlePriorAuth,
+  "gaps-in-care": handleGapsInCare,
+  "medication-safety": handleMedicationSafety,
+  "care-plan": handleCarePlanNavigator,
+  "clinical-trials": handleClinicalTrials,
+  "readmission-risk": handleReadmissionRisk,
+  triage: handleTriage,
+  "imaging-followup": handleImagingFollowup,
+  "lab-explainer": handleLabExplainer,
+  "nl-query": handleNLQuery,
+  "sdoh-referral": handleSDOHReferral,
+});
 
 const CONTEST_AGENTS = {
   "/api/contest/summary": handleSummary,
@@ -107,6 +124,11 @@ export default {
           "access-control-allow-origin": "*",
         },
       });
+    }
+
+    // MASTERLINC Agent Orchestrator
+    if (path.startsWith("/api/orchestrate")) {
+      return handleOrchestrate(request, env);
     }
 
     // FHIR R4 Server — real patient persistence on D1
