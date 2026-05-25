@@ -15,6 +15,7 @@ import { handleNphiesProxy } from "./agents/nphies-oracle-proxy.js";
 import { handlePatient } from "./agents/patient-api.js";
 import { handleDomains } from "./agents/domain-api.js";
 import { handleOracleBridge } from "./agents/oracle-bridge-connector.js";
+import { handleOracleLogin } from "./agents/oracle-login.js";
 import { handleFHIR } from "./agents/fhir-server.js";
 
 const CONTEST_AGENTS = {
@@ -114,6 +115,10 @@ export default {
     }
 
     // Oracle Bridge Connector (must be before generic /api/oracle)
+    if (path.startsWith("/api/oracle/login")) {
+      return handleOracleLogin(request, env);
+    }
+
     if (path.startsWith("/api/oracle/bridge")) {
       return handleOracleBridge(request, env);
     }
