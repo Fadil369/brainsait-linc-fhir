@@ -33,6 +33,9 @@ export default function ContestPanel() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <span className="rounded-md border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-[11px] text-blue-400 font-mono">
+            iris-fhir.brainsait.org
+          </span>
           <span className="rounded-md border border-yellow-500/30 bg-yellow-500/10 px-2.5 py-1 text-[11px] text-yellow-400">
             25 May – 14 Jun 2026
           </span>
@@ -142,7 +145,7 @@ export default function ContestPanel() {
             { id: "oracle", label: "Oracle Bridge", desc: "6 hospital EHRs — legacy system integration", color: "text-red-400" },
             { id: "claimlinc", label: "ClaimLinc", desc: "NPHIES claims API — submission + tracking", color: "text-purple-400" },
             { id: "portals", label: "Brainsait Portals", desc: "Unified portal gateway — SSO + routing", color: "text-pink-400" },
-            { id: "healthcare", label: "Healthcare GW", desc: "FHIR gateway — multi-backend routing", color: "text-indigo-400" },
+            { id: "healthcare-gateway", label: "Healthcare GW", desc: "FHIR gateway — multi-backend routing", color: "text-indigo-400" },
           ].map((b) => (
             <a key={b.id} href={`/api/ecosystem/${b.id}`} target="_blank" rel="noopener noreferrer"
               className="rounded-lg border border-white/10 bg-white/[0.03] p-3 hover:bg-white/[0.06] transition-colors"
