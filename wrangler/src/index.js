@@ -138,14 +138,48 @@ export default {
       return handleDomains(request, env);
     }
 
+    // Serve static assets (JS, CSS from build)
+    if (path.startsWith("/assets/")) {
+      const assetName = path.replace("/assets/", "");
+      const assetPath = `/home/fadil369/brainsait-linc-fhir/dist/assets/${assetName}`;
+      try {
+        const fs = require("fs");
+        const content = fs.readFileSync(assetPath);
+        const ext = assetName.split(".").pop();
+        const mime = ext === "js" ? "application/javascript" : ext === "css" ? "text/css" : "application/octet-stream";
+        return new Response(content, {
+          headers: { "content-type": mime, "access-control-allow-origin": "*", "cache-control": "public, max-age=31536000" },
+        });
+      } catch {
+        // Fall through to HTML
+      }
+    }
+
     // Ecosystem proxy — routes to HNH, NPHIES, BASMA, GIVC, SBS, Oracle, etc.
     if (path.startsWith("/api/ecosystem")) {
       return handleEcosystem(request, env);
     }
 
-    return new Response("BrainSAIT LINC FHIR Unified API", {
+    // Serve the dashboard HTML for all other routes (SPA)
+    const html = `<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BrainSAIT · LINC Agent Unification</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet" />
+    <script type="module" crossorigin src="/assets/index.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>`;
+
+    return new Response(html, {
       headers: {
-        "content-type": "text/plain",
+        "content-type": "text/html;charset=utf-8",
         "access-control-allow-origin": "*",
       },
     });
