@@ -5,12 +5,12 @@
  */
 
 const ORACLE_PORTALS = {
-  riyadh: { url: "https://oracle-riyadh.brainsait.org/prod/faces/Login.jsf", user: "U29200", pass: "U29201" },
-  madinah: { url: "https://oracle-madinah.brainsait.org/Oasis/faces/Login.jsf", user: "U29200", pass: "U29201" },
-  jizan: { url: "https://oracle-jizan.brainsait.org/prod/faces/Login.jsf", user: "U29200", pass: "U29201" },
-  khamis: { url: "https://oracle-khamis.brainsait.org/prod/faces/Login.jsf", user: "U29200", pass: "U29201" },
-  unaizah: { url: "https://oracle-unaizah.brainsait.org/prod/faces/Login.jsf", user: "U29200", pass: "U29201" },
-  abha: { url: "https://oracle-abha.brainsait.org/Oasis/faces/Login.jsf", user: "U29200", pass: "U29201" },
+  riyadh:     { url: "https://oracle-riyadh.brainsait.org/prod/faces/Login.jsf",     user: "U29200", pass: "U29201" },
+  madinah:    { url: "https://oracle-madinah.brainsait.org/Oasis/faces/Login.jsf",  user: "credentials_on_worker", pass: "oracle-bridge" },
+  jizan:      { url: "https://oracle-jizan.brainsait.org/prod/faces/Login.jsf",     user: "credentials_on_worker", pass: "oracle-bridge" },
+  khamis:     { url: "https://oracle-khamis.brainsait.org/prod/faces/Login.jsf",    user: "credentials_on_worker", pass: "oracle-bridge" },
+  unaizah:    { url: "https://oracle-unaizah.brainsait.org/prod/faces/Login.jsf",   user: "credentials_on_worker", pass: "oracle-bridge" },
+  abha:       { url: "https://oracle-abha.brainsait.org/Oasis/faces/Login.jsf",     user: "credentials_on_worker", pass: "oracle-bridge" },
 };
 
 export async function handleOracleLogin(request, env) {
@@ -100,18 +100,55 @@ export async function handleOracleLogin(request, env) {
     }
   }
 
-  // Fallback: no browser rendering available
+  // Fallback: try direct HTTP POST login (Oracle EBS sometimes accepts it)
+  if (portal.user !== "credentials_on_worker") {
+    try {
+      const loginResp = await fetch(portal.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          "username": portal.user,
+          "password": portal.pass,
+          "login": "Login",
+        }),
+        redirect: "manual",
+      });
+      const location = loginResp.headers.get("location") || "";
+      return new Response(JSON.stringify({
+        hospital,
+        portal: portal.url,
+        credentials: { username: portal.user, password: "****" },
+        loginAttempted: true,
+        httpStatus: loginResp.status,
+        redirectedTo: location,
+        loginSuccess: location.length > 0 && !location.includes("Login"),
+        browserRenderingAvailable: false,
+        note: "Direct HTTP POST login attempted. Full Oracle EBS login requires Browser Rendering for JS execution.",
+      }, null, 2), {
+        headers: { "content-type": "application/json", "access-control-allow-origin": "*" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({
+        hospital,
+        error: e.message,
+        fallback: "Use oracle-bridge worker for API access.",
+      }), { status: 500, headers: { "content-type": "application/json", "access-control-allow-origin": "*" } });
+    }
+  }
+
   return new Response(JSON.stringify({
     hospital,
     portal: portal.url,
-    credentials: { username: portal.user, password: "****" },
+    credentials: { note: "Credentials are stored as CF secrets on oracle-bridge worker" },
     browserRenderingAvailable: false,
+    workerBridgeAvailable: true,
     alternatives: [
-      "Call oracle-bridge worker-to-worker (bypasses SSO)",
-      "Set up Cloudflare Browser Rendering binding in wrangler.toml",
+      `Call oracle-bridge worker-to-worker for API access to ${hospital}`,
+      "Set up Cloudflare Browser Rendering binding in wrangler.toml for full JS login",
       "Use the NPHIES API for claims data (already live)",
     ],
-    directLoginNote: "Oracle EBS login requires JS execution. Browser Rendering is needed.",
+    directLoginNote: `Credentials for ${hospital} are on oracle-bridge worker. Use /api/oracle/bridge/patients/${hospital} for API access.`,
+    bridgeEndpoint: `/api/oracle/bridge/patients/${hospital}`,
   }, null, 2), {
     headers: { "content-type": "application/json", "access-control-allow-origin": "*" },
   });
