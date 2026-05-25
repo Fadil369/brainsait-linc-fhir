@@ -10,10 +10,12 @@ import FhirFlows from "./components/FhirFlows.jsx";
 import WorkerList from "./components/WorkerList.jsx";
 import InterSystemsPanel from "./components/InterSystemsPanel.jsx";
 import UnificationPlan from "./components/UnificationPlan.jsx";
+import ContestPanel from "./components/ContestPanel.jsx";
 
 const TABS = [
   { id: "agents", label: "LINC Agents", arabic: "وكلاء لينك" },
   { id: "fhir", label: "FHIR Flows", arabic: "تدفقات FHIR" },
+  { id: "contest", label: "🏆 Contest", arabic: "المسابقة" },
   { id: "workers", label: "CF Workers", arabic: "عمال كلاود فلير" },
   { id: "intersys", label: "InterSystems", arabic: "إنتر سيستمز" },
   { id: "plan", label: "Unification Plan", arabic: "خطة التوحيد" },
@@ -40,6 +42,7 @@ export default function App() {
       <div style={{ padding: "28px 32px" }}>
         {activeTab === "agents" && <AgentPanel agents={LINC_AGENTS} />}
         {activeTab === "fhir" && <FhirFlows flows={FHIR_FLOWS} />}
+        {activeTab === "contest" && <ContestPanel />}
         {activeTab === "workers" && <WorkerList workers={CF_WORKERS} />}
         {activeTab === "intersys" && (
           <InterSystemsPanel arch={INTERSYSTEMS_ARCH} />
