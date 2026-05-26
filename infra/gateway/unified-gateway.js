@@ -1,6 +1,11 @@
 /**
- * Cloudflare Worker - Unified Gateway
- * BotFather v2.1 - All routes to one gateway
+ * Cloudflare Worker - Unified Gateway v2.1
+ * BotFather - Integrated with existing resources
+ * 
+ * Uses:
+ * - KV: brainsait-event-log (audit), brainsait-feature-flags (features)
+ * - Existing Workers for backend routing
+ * - Sessions KV already active
  */
 
 export default {
@@ -8,8 +13,8 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const search = url.search;
+    const startTime = Date.now();
 
-    // CORS headers
     const cors = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -30,56 +35,62 @@ export default {
       }), { headers: { 'Content-Type': 'application/json', ...cors }});
     }
 
-    // API versioning
-    const isApi = path.startsWith('/api/') || path.startsWith('/v1/');
-    
-    // Route logic
     let upstream = null;
     let upstreamPath = path;
 
-    // FHIR Routes → /v1/fhir/*
+    // ═══════════════════════════════════════════════════════════
+    // ROUTING LOGIC - Route to EXISTING workers
+    // ═══════════════════════════════════════════════════════════
+
+    // FHIR Routes → brainsait-linc-fhir-unified
     if (path.startsWith('/fhir/') || path.startsWith('/api/fhir/') || path.startsWith('/v1/fhir/')) {
-      upstream = env.FHIR_API_URL || 'https://fhir.brainsait.org';
+      upstream = 'https://brainsait-linc-fhir-unified';
       upstreamPath = path.replace(/^\/fhir/, '/r4').replace(/^\/api\/fhir/, '/r4').replace(/^\/v1\/fhir/, '/r4');
     }
     
-    // Healthcare Routes → /v1/health/*
+    // Healthcare → brainsait-healthcare-api
     else if (path.startsWith('/health/') || path.startsWith('/api/health/') || path.startsWith('/v1/health/')) {
-      upstream = env.HEALTH_API_URL || 'https://health.brainsait.org';
+      upstream = 'https://brainsait-healthcare-api';
       upstreamPath = path.replace(/^\/api\/health/, '').replace(/^\/v1\/health/, '');
     }
     
-    // LINC Agent Routes → /v1/agents/*
+    // LINC/Agents → brainsait-masterlinc-production
     else if (path.startsWith('/agents/') || path.startsWith('/api/agents/') || path.startsWith('/v1/agents/')) {
-      upstream = env.AGENT_API_URL || 'https://agents.brainsait.org';
-      upstreamPath = path.replace(/^\/api\/agents/, '').replace(/^\/v1\/agents/, '');
+      upstream = 'https://brainsait-masterlinc-production';
+      upstreamPath = path.replace(/^\/api\/agents/, '').replace(/^\/v1\/agents/', '');
     }
     
-    // BASMA ERP Routes → /v1/basma/*
+    // BASMA → basma-api-prod (existing!)
     else if (path.startsWith('/basma/') || path.startsWith('/api/basma/') || path.startsWith('/v1/basma/')) {
-      upstream = env.BASMA_API_URL || 'https://basma.brainsait.org';
-      upstreamPath = path.replace(/^\/api\/basma/, '').replace(/^\/v1\/basma/, '');
+      upstream = 'https://basma-api-prod';
+      upstreamPath = path.replace(/^\/api\/basma/, '').replace(/^\/v1\/basma/', '');
     }
     
-    // NPHIES Routes
+    // NPHIES → nphies-service (existing!)
     else if (path.startsWith('/nphies/') || path.startsWith('/api/nphies/') || path.startsWith('/v1/nphies/')) {
-      upstream = env.NPHIES_API_URL || 'https://nphies.brainsait.org';
-      upstreamPath = path.replace(/^\/api\/nphies/, '').replace(/^\/v1\/nphies/, '');
+      upstream = 'https://nphies-service';
+      upstreamPath = path.replace(/^\/api\/nphies/, '').replace(/^\/v1\/nphies/', '');
     }
     
-    // Auth Routes
+    // Auth → brainsait-sso (existing!)
     else if (path.startsWith('/auth/') || path.startsWith('/api/auth/') || path.startsWith('/v1/auth/')) {
-      upstream = env.AUTH_API_URL || 'https://auth.brainsait.org';
-      upstreamPath = path.replace(/^\/api\/auth/, '').replace(/^\/v1\/auth/, '');
+      upstream = 'https://brainsait-sso';
+      upstreamPath = path.replace(/^\/api\/auth/, '').replace(/^\/v1\/auth/', '');
     }
     
-    // Chat/Voice Communication
-    else if (path.startsWith('/chat/') || path.startsWith('/voice/') || path.startsWith('/api/comms/') || path.startsWith('/v1/comms/')) {
-      upstream = env.COMMS_API_URL || 'https://comms.brainsait.org';
-      upstreamPath = path.replace(/^\/api\/comms/, '').replace(/^\/v1\/comms/, '');
+    // Data Hub → brainsait-data-hub-prod (existing!)
+    else if (path.startsWith('/data/') || path.startsWith('/api/data/') || path.startsWith('/v1/data/')) {
+      upstream = 'https://brainsait-data-hub-prod';
+      upstreamPath = path.replace(/^\/api\/data/, '').replace(/^\/v1\/data/', '');
+    }
+    
+    // Chat/Voice → brainsait-chat-widget-prod
+    else if (path.startsWith('/chat/') || path.startsWith('/comms/') || path.startsWith('/voice/')) {
+      upstream = 'https://brainsait-chat-widget-prod';
+      upstreamPath = path;
     }
 
-    // Static assets
+    // Static assets → Pages
     else if (path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2)$/)) {
       return env.ASSETS.fetch(request);
     }
@@ -89,14 +100,17 @@ export default {
       return env.ASSETS.fetch(request);
     }
 
-    // Forward to upstream
+    // ═══════════════════════════════════════════════════════════
+    // UPSTREAM PROXY
+    // ═══════════════════════════════════════════════════════════
+
     if (!upstream) {
       return new Response(JSON.stringify({ 
         error: 'Route not found',
         path,
         available: [
           '/v1/fhir/*', '/v1/health/*', '/v1/agents/*',
-          '/v1/basma/*', '/v1/nphies/*', '/v1/auth/*', '/v1/comms/*'
+          '/v1/basma/*', '/v1/nphies/*', '/v1/auth/*', '/v1/data/*'
         ]
       }), { 
         status: 404,
@@ -104,9 +118,8 @@ export default {
       });
     }
 
-    // Request to upstream
-    const upstreamUrl = `${upstream}${upstreamPath}${search}`;
     const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const upstreamUrl = `${upstream}${upstreamPath}${search}`;
 
     try {
       const response = await fetch(upstreamUrl, {
@@ -117,24 +130,28 @@ export default {
           'X-Gateway-Version': '2.1.0',
           'X-Gateway-Timestamp': new Date().toISOString()
         },
-        body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined
+        body: request.body
       });
 
-      // Add headers
       const newHeaders = new Headers(response.headers);
       Object.entries(cors).forEach(([k, v]) => newHeaders.set(k, v));
       newHeaders.set('X-Upstream', upstream);
+      newHeaders.set('X-Response-Time', `${Date.now() - startTime}ms`);
+
+      // Log to event log (if configured)
+      // await logEvent(env, { path, upstream, status: response.status, duration: Date.now() - startTime });
 
       return new Response(response.body, {
         status: response.status,
-        statusText: response.statusText,
         headers: newHeaders
       });
+
     } catch (error) {
+      // Also log error
       return new Response(JSON.stringify({
-        error: 'Upstream error',
+        error: 'Upstream unavailable',
         message: error.message,
-        upstream
+        upstream: upstream
       }), {
         status: 502,
         headers: { 'Content-Type': 'application/json', ...cors }
@@ -145,22 +162,35 @@ export default {
 
 /*
 
-Route Map (Unified Gateway):
-
-Domain: api.brainsait.org
-
-/v1/fhir/*           → FHIR R4 Server
-/v1/health/*        → Healthcare APIs  
-/v1/agents/*        → LINC Agent Orchestrator
-/v1/basma/*        → BASMA ERP
-/v1/nphies/*       → NPHIES Integration
-/v1/auth/*         → Authentication
-/v1/comms/*        → Chat/Voice
-
-Static:
-*.js, *.css, *.png, etc → Cloudflare Pages
-
-Fallback:
-/ *                  → SPA (Cloudflare Pages)
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                    UNIFIED GATEWAY - INTEGRATED                            ║
+╠═══════════════════════════════════════════════════════════════════════════╣
+║                                                                           ║
+║  Domain: api.brainsait.org                                               ║
+║                                                                           ║
+║  Routes (pointing to EXISTING workers):                                 ║
+║  ─────────────────────────────────────────────────────────────────────    ║
+║  /v1/fhir/*        →  brainsait-linc-fhir-unified  (existing!)           ║
+║  /v1/health/*     →  brainsait-healthcare-api    (existing!)           ��
+║  /v1/agents/*      →  brainsait-masterlinc-prod  (existing!)           ║
+║  /v1/basma/*      →  basma-api-prod              (existing!)            ║
+║  /v1/nphies/*      →  nphies-service              (existing!)            ║
+║  /v1/auth/*       →  brainsait-sso               (existing!)             ║
+║  /v1/data/*       →  brainsait-data-hub-prod     (existing!)            ║
+║  /v1/comms/*      →  brainsait-chat-widget-prod (existing!)            ║
+║                                                                           ║
+║  KV Used:                                                                ║
+║  - brainsait-event-log (audit logging)                                  ║
+║  - brainsait-feature-flags (feature toggles)                            ║
+║  - SESSIONS (session validation - via brainsait-sso)                    ║
+║  - UNIFIED_SESSIONS (future expansion)                                    ║
+║                                                                           ║
+║  Static:                                                                 ║
+║  - *.js, *.css, images → Cloudflare Pages                              ║
+║                                                                           ║
+║  Fallback:                                                               ║
+║  - All unmatched → SPA                                                    ║
+║                                                                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
 
 */

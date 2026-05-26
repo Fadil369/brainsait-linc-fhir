@@ -1,4 +1,6 @@
 # Unified Gateway - BotFather v2.1
+# Uses EXISTING resources from the account
+
 name = "brainsait-unified-gateway"
 main = "unified-gateway.js"
 compatibility_date = "2024-01-01"
@@ -7,36 +9,51 @@ compatibility_date = "2024-01-01"
 ENVIRONMENT = "production"
 VERSION = "2.1.0"
 
-# KV for caching and rate limiting
+# ═══════════════════════════════════════════════════════════
+# KV NAMESPACES (EXISTING - from audit)
+# ═══════════════════════════════════════════════════════════
 [[kv_namespaces]]
-binding = "KV"
-id = "brainsait-feature-flags"
+binding = "EVENT_LOG"
+id = "114b15432afa430aa03ea77c9c561d9e"
+# brainsait-event-log
 
-# R2 buckets
-[[r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "brainsait-media"
+[[kv_namespaces]]
+binding = "FEATURE_FLAGS"
+id = "021ea635293a457b8dfaf854f10dbec4"
+# brainsait-feature-flags
 
-# Environment-specific URLs (secrets in production)
-[dev]
-port = 8787
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "33a2f9eb359f4b4380869639245d9673"
+# SESSIONS
 
+[[kv_namespaces]]
+binding = "UNIFIED_SESSIONS"
+id = "062eab539a7049c0b1e36049441a211d"
+# UNIFIED_SESSIONS
+
+[[kv_namespaces]]
+binding = "BOT_KV"
+id = "553388646ee64b14b871aa17eeaa5cbc"
+# BOT_KV
+
+# Routes for production
 [env.production]
 name = "brainsait-unified-gateway-production"
 routes = [
   { pattern = "api.brainsait.org/*", zone_name = "brainsait.org" }
 ]
 
-# Secrets to set:
-# wrangler secret put FHIR_API_URL
-# wrangler secret put HEALTH_API_URL  
-# wrangler secret put AGENT_API_URL
-# wrangler secret put BASMA_API_URL
-# wrangler secret put NPHIES_API_URL
-# wrangler secret put AUTH_API_URL
-# wrangler secret put COMMS_API_URL
-
-# Custom domains
+# DNS setup (manual in Cloudflare dashboard):
+# Type: CNAME
+# Name: api
+# Value: brainsait-unified-gateway-production.<username>.workers.dev
+#
+# Or set custom domain:
 # [[domains]]
 #   hostname = "api.brainsait.org"
 #   zone_name = "brainsait.org"
+
+# Secrets (already set in Cloudflare or set via CLI):
+# wrangler secret put API_KEY
+# (If needed for authenticating to upstream services)

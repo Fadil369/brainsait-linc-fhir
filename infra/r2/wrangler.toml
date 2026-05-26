@@ -1,4 +1,7 @@
-# Cloudflare R2 Media Storage Worker
+# Cloudflare R2 Media Storage Worker - v2.1
+# Connects to R2 bucket for file storage
+# Optional: can reuse logic from browser-r2-worker
+
 name = "brainsait-r2-media"
 main = "media-worker.js"
 compatibility_date = "2024-01-01"
@@ -7,19 +10,27 @@ compatibility_date = "2024-01-01"
 ENVIRONMENT = "production"
 VERSION = "2.1.0"
 
-# R2 bucket binding
+# ═══════════════════════════════════════════════════
+# R2 BUCKET - Requires manual creation first!
+# ═══════════════════════════════════════════════════
+# Run: wrangler r2 bucket create brainsait-media
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"
-bucket_name = "brainsait-media"
+bucket_name = "brainsait-media"  # Create this bucket first!
 
-# Routes for storage API
+# Secondary bucket for temp files
+[[r2_buckets]]
+binding = "TEMP_BUCKET" 
+bucket_name = "brainsait-temp"
+
+# Routes for production
 [env.production]
 name = "brainsait-r2-media-production"
-routes = [
-  { pattern = "media.brainsait.org/*", zone_name = "brainsait.org" }
-]
+# Enable after setting up custom domain in dashboard
+# routes = []
 
-# Custom domain
-# [[domains]]
-#   hostname = "media.brainsait.org"
-#   zone_name = "brainsait.org"
+# Custom domain (configure in dashboard after bucket creation):
+# media.brainsait.org → workers
+
+# Secrets:
+# wrangler secret put R2_ADMIN_KEY (for delete operations)
