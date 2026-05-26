@@ -1,0 +1,30 @@
+{
+  "resourceType": "Patient",
+  "id": "bs-patient-001",
+  "meta": {
+    "profile": ["http://hl7.org/fhir/StructureDefinition/Patient"],
+    "lastUpdated": "2026-05-25T19:00:00Z"
+  },
+  "text": {
+    "status": "generated",
+    "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Mohammed Al-Fadil, Male, DOB 1990-01-15</div>"
+  },
+  "identifier": [{
+    "system": "urn:oid:2.16.840.1.113883.3.9898",
+    "value": "1234567890"
+  }],
+  "active": true,
+  "name": [{
+    "use": "official",
+    "family": "Al-Fadil",
+    "given": ["Mohammed"]
+  }],
+  "gender": "male",
+  "birthDate": "1990-01-15",
+  "address": [{
+    "use": "home",
+    "text": "Riyadh, Saudi Arabia",
+    "city": "Riyadh",
+    "country": "SA"
+  }]
+}

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="IRIS" version="26">
+<Module>
+  <Name>brainsait-linc-fhir</Name>
+  <Version>3.2.0</Version>
+  <Description>BrainSAIT Unified AI Agents for FHIR — LINC Orchestration, NPHIES Claims, Bilingual FHIR Viewer, CDS Hooks v2, 12 Contest AI Agents</Description>
+  <OrganizationName>BrainSAIT</OrganizationName>
+  <Authors>fadil369</Authors>
+  <Keywords>FHIR,R4,NPHIES,LINC,AI,Agents,InterSystems,Healthcare,Contest</Keywords>
+
+  <Dependencies>
+    <ModuleReference Name="HS.FHIR" Version="1.0.*" />
+    <ModuleReference Name="Ensemble" Version="2024.*" />
+  </Dependencies>
+
+  <!-- Core LINC Production Classes -->
+  <Resource Name="BrainSAIT.Production.MASTERLINC.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Production.CLAIMLINC.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Production.RADIOLINC.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Production.COMPLIANCELINC.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Production.CLINICALLINC.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Production.HEALTHCARELINC.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Production.TTLINC.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Production.CONTEXTLINC.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Production.DOCULINC.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Production.ORACLEBRIDGE.CLS" Type="CLS" />
+
+  <!-- Audit & Validation -->
+  <Resource Name="BrainSAIT.Audit.HIPAA.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Audit.NPHIES.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Validation.NPHIES.CLS" Type="CLS" />
+
+  <!-- Contest AI Agent Classes (12 tasks × 5 bonus pts = 60 possible) -->
+  <Resource Name="BrainSAIT.Contest.SummaryGenerator.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Contest.PriorAuthCopilot.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Contest.GapsInCareFinder.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Contest.MedicationSafety.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Contest.CarePlanNavigator.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Contest.ClinicalTrialMatcher.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Contest.ReadmissionRisk.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Contest.TriageAssistant.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Contest.ImagingFollowup.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Contest.LabExplainer.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Contest.NLQueryExplorer.CLS" Type="CLS" />
+  <Resource Name="BrainSAIT.Contest.SDOHReferralMatcher.CLS" Type="CLS" />
+
+  <Lifecycle>
+    <Phase Value="1" Name="Install">
+      <Action Class="%Installer.Manifest" />
+    </Phase>
+    <Phase Value="2" Name="Configure">
+      <Action Class="Ens.Config.Portal" />
+    </Phase>
+    <Phase Value="3" Name="Activate">
+      <Action Class="Ens.Deployment.Activate" />
+    </Phase>
+  </Lifecycle>
+
+  <Production Name="BrainSAIT.Production.MasterUnified">
+    <Actor Name="MASTERLINC" ClassName="BrainSAIT.Production.MASTERLINC" Enabled="1">
+      <Setting Name="TargetConfigNames" Value="ClaimLinc,ClinicalLinc,ComplianceLinc,DocuLinc,RadioLinc,HealthcareLinc,TTLinc,ContextLinc,OracleBridge,SummaryGenerator,PriorAuthCopilot,GapsInCareFinder,MedicationSafety,CarePlanNavigator,ClinicalTrialMatcher,ReadmissionRisk,TriageAssistant,ImagingFollowup,LabExplainer,NLQueryExplorer,SDOHReferralMatcher" />
+    </Actor>
+    <Actor Name="ClaimLinc" ClassName="BrainSAIT.Production.CLAIMLINC" Enabled="1" />
+    <Actor Name="ClinicalLinc" ClassName="BrainSAIT.Production.CLINICALLINC" Enabled="1" />
+    <Actor Name="ComplianceLinc" ClassName="BrainSAIT.Production.COMPLIANCELINC" Enabled="1" />
+    <Actor Name="DocuLinc" ClassName="BrainSAIT.Production.DOCULINC" Enabled="1" />
+    <Actor Name="RadioLinc" ClassName="BrainSAIT.Production.RADIOLINC" Enabled="1" />
+    <Actor Name="HealthcareLinc" ClassName="BrainSAIT.Production.HEALTHCARELINC" Enabled="1" />
+    <Actor Name="TTLinc" ClassName="BrainSAIT.Production.TTLINC" Enabled="1" />
+    <Actor Name="ContextLinc" ClassName="BrainSAIT.Production.CONTEXTLINC" Enabled="1" />
+    <Actor Name="OracleBridge" ClassName="BrainSAIT.Production.ORACLEBRIDGE" Enabled="1" />
+    <Actor Name="SummaryGenerator" ClassName="BrainSAIT.Contest.SummaryGenerator" Enabled="1" />
+    <Actor Name="PriorAuthCopilot" ClassName="BrainSAIT.Contest.PriorAuthCopilot" Enabled="1" />
+    <Actor Name="GapsInCareFinder" ClassName="BrainSAIT.Contest.GapsInCareFinder" Enabled="1" />
+    <Actor Name="MedicationSafety" ClassName="BrainSAIT.Contest.MedicationSafety" Enabled="1" />
+    <Actor Name="CarePlanNavigator" ClassName="BrainSAIT.Contest.CarePlanNavigator" Enabled="1" />
+    <Actor Name="ClinicalTrialMatcher" ClassName="BrainSAIT.Contest.ClinicalTrialMatcher" Enabled="1" />
+    <Actor Name="ReadmissionRisk" ClassName="BrainSAIT.Contest.ReadmissionRisk" Enabled="1" />
+    <Actor Name="TriageAssistant" ClassName="BrainSAIT.Contest.TriageAssistant" Enabled="1" />
+    <Actor Name="ImagingFollowup" ClassName="BrainSAIT.Contest.ImagingFollowup" Enabled="1" />
+    <Actor Name="LabExplainer" ClassName="BrainSAIT.Contest.LabExplainer" Enabled="1" />
+    <Actor Name="NLQueryExplorer" ClassName="BrainSAIT.Contest.NLQueryExplorer" Enabled="1" />
+    <Actor Name="SDOHReferralMatcher" ClassName="BrainSAIT.Contest.SDOHReferralMatcher" Enabled="1" />
+  </Production>
+
+</Module>
+</Export>

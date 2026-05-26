@@ -1,0 +1,41 @@
+name: FHIR Lint Validation
+
+on:
+  push:
+    paths:
+      - 'fhir/**'
+      - 'testdata/**'
+  pull_request:
+    paths:
+      - 'fhir/**'
+      - 'testdata/**'
+  workflow_dispatch:
+
+jobs:
+  fhirlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install fhirlint
+        run: |
+          gh release download --repo fhirlint/fhirlint --pattern "*linux_amd64.tar.gz"
+          tar xzf fhirlint_*_linux_amd64.tar.gz
+          sudo mv fhirlint /usr/local/bin/
+
+      - name: Validate FHIR resources
+        run: |
+          if [ -d "fhir" ]; then
+            fhirlint validate fhir/ --format json --output lint-report.json || true
+            echo "=== FHIR Lint Report ==="
+            cat lint-report.json | python3 -m json.tool
+          else
+            echo "No fhir/ directory found — skipping"
+          fi
+
+      - name: Upload lint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: fhirlint-report
+          path: lint-report.json
+          if-no-files-found: ignore

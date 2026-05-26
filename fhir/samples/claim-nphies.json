@@ -1,0 +1,62 @@
+{
+  "resourceType": "Claim",
+  "id": "bs-claim-001",
+  "meta": {
+    "profile": ["http://nphies.sa/fhir/StructureDefinition/Claim"]
+  },
+  "status": "active",
+  "type": {
+    "coding": [{
+      "system": "http://hl7.org/fhir/claim-type",
+      "code": "institutional"
+    }]
+  },
+  "use": "claim",
+  "patient": {
+    "reference": "Patient/bs-patient-001"
+  },
+  "created": "2026-05-25T19:00:00Z",
+  "insurer": {
+    "reference": "Organization/nphies-insurer"
+  },
+  "provider": {
+    "reference": "Organization/brainsait-hospital"
+  },
+  "priority": {
+    "coding": [{
+      "system": "http://hl7.org/fhir/processpriority",
+      "code": "normal"
+    }]
+  },
+  "diagnosis": [{
+    "sequence": 1,
+    "diagnosisCodeableConcept": {
+      "coding": [{
+        "system": "http://hl7.org/fhir/sid/icd-10",
+        "code": "J18.9",
+        "display": "Pneumonia, unspecified"
+      }]
+    }
+  }],
+  "item": [{
+    "sequence": 1,
+    "productOrService": {
+      "coding": [{
+        "system": "http://nphies.sa/terminology/CodeSystem/service-codes",
+        "code": "101",
+        "display": "Medical Service"
+      }]
+    },
+    "quantity": {
+      "value": 1
+    },
+    "unitPrice": {
+      "value": 500,
+      "currency": "SAR"
+    }
+  }],
+  "extension": [{
+    "url": "http://nphies.sa/fhir/StructureDefinition/extension-claim-submission-number",
+    "valueString": "BS-2026-001"
+  }]
+}

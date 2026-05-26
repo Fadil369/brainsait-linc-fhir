@@ -1,0 +1,35 @@
+name = "brainsait-linc-fhir-unified"
+main = "src/index.js"
+compatibility_date = "2026-05-25"
+compatibility_flags = ["nodejs_compat"]
+
+account_id = "d7b99530559ab4f2545e9bdc72a7ab9b"
+workers_dev = true
+
+routes = [
+  { pattern = "iris-fhir.brainsait.org", custom_domain = true }
+]
+
+[triggers]
+crons = ["*/10 * * * *"]
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "FHIR_DB"
+database_name = "brainsait-healthcare-d1"
+database_id = "0def24ea-658c-446a-bb05-61856eb5f3de"
+
+[env.production]
+name = "brainsait-linc-fhir-prod"
+routes = [
+  { pattern = "iris-fhir.brainsait.org", custom_domain = true }
+]
+[[env.production.d1_databases]]
+binding = "FHIR_DB"
+database_name = "brainsait-healthcare-d1"
+database_id = "0def24ea-658c-446a-bb05-61856eb5f3de"
+
+[env.staging]
+name = "brainsait-linc-fhir-staging"

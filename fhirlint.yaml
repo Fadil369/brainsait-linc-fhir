@@ -1,0 +1,21 @@
+# BrainSAIT FHIR Lint Configuration
+# See: https://github.com/fhirlint/fhirlint
+
+severity: warning
+fail-on: error
+
+profiles:
+  Patient: "http://hl7.org/fhir/StructureDefinition/Patient"
+  Observation: "http://hl7.org/fhir/StructureDefinition/Observation"
+  Claim: "http://nphies.sa/fhir/StructureDefinition/Claim"
+  Coverage: "http://nphies.sa/fhir/StructureDefinition/Coverage"
+
+suppress:
+  # Narrative text is optional for internal resources
+  - rule: "text.div"
+    when:
+      resourceType:
+        - "Task"
+        - "AuditEvent"
+
+format: json
