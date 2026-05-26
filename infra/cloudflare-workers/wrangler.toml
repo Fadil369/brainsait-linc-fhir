@@ -1,0 +1,24 @@
+# Cloudflare Worker Configuration - BotFather
+name = "brainsait-botfather"
+main = "fhir-router.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+ENVIRONMENT = "production"
+VERSION = "2.1.0"
+
+[env.production]
+name = "brainsait-botfather-production"
+
+# KV Namespace for caching
+[[kv_namespaces]]
+binding = "KV"
+id = "your-kv-namespace-id"
+
+# Routes
+[dev]
+port = 8787
+
+# Secrets (set via CLI):
+# wrangler secret put API_KEY
+# wrangler secret put AGENT_API_URL
