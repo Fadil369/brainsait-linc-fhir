@@ -55,6 +55,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
+    const method = request.method;
 
     if (path === "/api/health") {
       const agents = Object.keys(CONTEST_AGENTS);
@@ -198,21 +199,55 @@ export default {
     }
 
     // Serve the shadcn React SPA from Cloudflare Pages
-    const pagesUrl = "https://brainsait-linc-fhir.pages.dev";
-    const pagesResp = await fetch(`${pagesUrl}${path}`);
-    if (pagesResp.ok) {
-      return new Response(pagesResp.body, {
-        status: pagesResp.status,
-        headers: {
-          "content-type": pagesResp.headers.get("content-type") || "text/html",
-          "access-control-allow-origin": "*",
-          "cache-control": "public, max-age=3600",
-        },
+    const pagesUrl = env.PAGES_URL || "https://brainsait-linc-fhir.pages.dev";
+    try {
+      const pagesResp = await fetch(`${pagesUrl}${path}`);
+      if (pagesResp.ok) {
+        return new Response(pagesResp.body, {
+          status: pagesResp.status,
+          headers: {
+            "content-type": pagesResp.headers.get("content-type") || "text/html",
+            "access-control-allow-origin": "*",
+            "cache-control": "public, max-age=3600",
+          },
+        });
+      }
+    } catch (e) {
+      // Pages not reachable — fall through to API-only response
+    }
+
+    // API root — return available endpoints
+    if (path === "/") {
+      const endpoints = [
+        "/api/health",
+        "/api/agents",
+        "/api/workers",
+        "/api/fhir/flows",
+        "/api/intersystems",
+        "/api/orchestrate",
+        "/api/patient",
+        "/api/nphies",
+        "/api/oracle",
+        "/api/ecosystem",
+        "/fhir/metadata",
+        ...Object.keys(CONTEST_AGENTS),
+      ];
+      return new Response(JSON.stringify({
+        service: "BrainSAIT LINC FHIR Unified API",
+        version: "3.2.0",
+        docs: "https://github.com/Fadil369/brainsait-linc-fhir",
+        endpoints,
+      }, null, 2), {
+        headers: { "content-type": "application/json", "access-control-allow-origin": "*" },
       });
     }
 
-    return new Response("BrainSAIT LINC FHIR Unified API — " + pagesUrl, {
-      headers: { "content-type": "text/plain", "access-control-allow-origin": "*" },
+    return new Response(JSON.stringify({
+      resourceType: "OperationOutcome",
+      issue: [{ severity: "error", code: "not-found", diagnostics: `No route for ${method} ${path}` }],
+    }), {
+      status: 404,
+      headers: { "content-type": "application/fhir+json", "access-control-allow-origin": "*" },
     });
   },
 };
