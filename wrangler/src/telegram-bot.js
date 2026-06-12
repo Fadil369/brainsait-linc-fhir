@@ -3,6 +3,7 @@ import { handleSummary, handlePriorAuth, handleGapsInCare,
   handleReadmissionRisk, handleTriage, handleImagingFollowup,
   handleLabExplainer, handleNLQuery, handleSDOHReferral,
 } from "./agents/ai-handler.js";
+import { speechToText, textToSpeech } from "./services/basma-voice.js";
 
 const AGENTS = {
   summary: { fn: handleSummary, label: "Patient Summary" },
@@ -19,10 +20,14 @@ const AGENTS = {
   "sdoh-referral": { fn: handleSDOHReferral, label: "SDOH Referral" },
 };
 
+const VOICE_MODE_KEY = "basma_voice_mode";
+
 const COMMANDS = [
   { command: "start", description: "Start BrainSAIT Healthcare AI" },
   { command: "help", description: "Show available commands" },
-  { command: "summary", description: "Generate patient summary (ID 1)" },
+  { command: "voice", description: "Toggle BASMA voice responses 🔊" },
+  { command: "basma", description: "Hear BASMA introduce herself" },
+  { command: "summary", description: "Generate patient summary" },
   { command: "triage", description: "Triage assessment" },
   { command: "meds", description: "Medication safety check" },
   { command: "gaps", description: "Identify care gaps" },
@@ -35,6 +40,9 @@ const COMMANDS = [
   { command: "sdoh", description: "SDOH referrals" },
   { command: "query", description: "Ask about a patient" },
 ];
+
+// In-memory voice mode toggle (per chat). For production, use KV/D1.
+const voiceModeChats = new Set();
 
 function makeFakeRequest(body) {
   return new Request("http://localhost/api/contest/agent", {
@@ -58,6 +66,27 @@ async function callAgent(agentKey, question, env) {
   }
 }
 
+function jsonToReadableText(data, depth = 0) {
+  if (typeof data === "string") return data;
+  if (typeof data === "number" || typeof data === "boolean") return String(data);
+  if (Array.isArray(data)) {
+    return data.map((item, i) => {
+      const prefix = depth === 0 ? "" : `${i + 1}. `;
+      return prefix + jsonToReadableText(item, depth + 1);
+    }).join(". ");
+  }
+  if (typeof data === "object" && data !== null) {
+    return Object.entries(data).map(([key, val]) => {
+      const label = key.replace(/([A-Z])/g, " $1").replace(/_/g, " ").trim();
+      if (typeof val === "object" && val !== null) {
+        return `${label}: ${jsonToReadableText(val, depth + 1)}`;
+      }
+      return `${label}: ${val}`;
+    }).join(". ");
+  }
+  return String(data);
+}
+
 function formatTelegram(text, maxLen = 4000) {
   if (text.length <= maxLen) return text;
   return text.slice(0, maxLen - 20) + "\n\n... (truncated)";
@@ -78,12 +107,34 @@ async function sendMessage(token, chatId, text, replyTo) {
   });
 }
 
+async function sendVoice(token, chatId, audioBuffer, replyTo, caption) {
+  const form = new FormData();
+  form.append("chat_id", String(chatId));
+  form.append("voice", new Blob([audioBuffer], { type: "audio/mpeg" }), "basma.mp3");
+  if (caption) form.append("caption", caption);
+  if (replyTo) form.append("reply_to_message_id", String(replyTo));
+
+  return fetch(`https://api.telegram.org/bot${token}/sendVoice`, {
+    method: "POST",
+    body: form,
+  });
+}
+
 async function sendChatAction(token, chatId, action = "typing") {
   return fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: chatId, action }),
   });
+}
+
+async function downloadFile(token, fileId) {
+  const infoRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`);
+  const info = await infoRes.json();
+  if (!info.ok) return null;
+  const filePath = info.result.file_path;
+  const fileRes = await fetch(`https://api.telegram.org/file/bot${token}/${filePath}`);
+  return fileRes.arrayBuffer();
 }
 
 async function setWebhook(token, webhookUrl) {
@@ -106,6 +157,82 @@ async function setCommands(token) {
   });
 }
 
+async function handleVoiceMessage(update, env, token) {
+  const chatId = update.message.chat.id;
+  const messageId = update.message.message_id;
+  const voice = update.message.voice || update.message.audio;
+  if (!voice) return new Response("OK");
+
+  await sendChatAction(token, chatId, "typing");
+
+  // Download voice file
+  const audioBuffer = await downloadFile(token, voice.file_id);
+  if (!audioBuffer) {
+    await sendMessage(token, chatId, "Could not download voice message.", messageId);
+    return new Response("OK");
+  }
+
+  // Transcribe with STT
+  const stt = await speechToText(audioBuffer, env.ELEVENLABS_API_KEY);
+  if (!stt.ok) {
+    await sendMessage(token, chatId, `Voice transcription failed: ${stt.error}`, messageId);
+    return new Response("OK");
+  }
+
+  const transcribedText = stt.text.trim();
+  if (!transcribedText) {
+    await sendMessage(token, chatId, "I could not understand the audio. Please try again.", messageId);
+    return new Response("OK");
+  }
+
+  // Detect language for response
+  const isArabic = /[\u0600-\u06FF]/.test(transcribedText);
+
+  // Route to triage agent
+  const result = await callAgent("triage", transcribedText, env);
+  const readable = jsonToReadableText(
+    typeof result === "string" ? (() => { try { return JSON.parse(result); } catch { return result; } })() : result
+  );
+
+  // Always send text
+  const label = "BASMA Triage";
+  const textMsg = `🎤 *${label}* (voice input)\n\n_${transcribedText}_\n\n${readable}`;
+  await sendMessage(token, chatId, textMsg, messageId);
+
+  // Send BASMA voice response
+  if (env.ELEVENLABS_API_KEY) {
+    await sendChatAction(token, chatId, "record_voice");
+    const voicePrompt = isArabic
+      ? `مرحباً، أنا بصمة، مساعدتك الصحية الذكية. ${readable}`
+      : `Hello, I am BASMA, your smart healthcare assistant. ${readable}`;
+
+    const tts = await textToSpeech(voicePrompt, env.ELEVENLABS_API_KEY);
+    if (tts.ok) {
+      await sendVoice(token, chatId, tts.audio, messageId);
+    }
+  }
+
+  return new Response("OK");
+}
+
+async function handleBasmaIntro(token, chatId, env) {
+  const introAr = `مرحباً! أنا بصمة، مساعدتك الصحية الذكية من برين سايت.
+أنا هنا لمساعدتك في كل ما يتعلق بصحتك.
+يمكنك إرسال رسالة صوتية أو نصية وسأقوم بتحليلها فوراً.
+أنا أتحدث العربية واللهجة السعودية بطلاقة.
+كيف يمكنني مساعدتك اليوم؟`;
+
+  await sendMessage(token, chatId, `🔊 *BASMA* — Your Smart Healthcare Assistant\n\n${introAr}`);
+
+  if (env.ELEVENLABS_API_KEY) {
+    await sendChatAction(token, chatId, "record_voice");
+    const tts = await textToSpeech(introAr, env.ELEVENLABS_API_KEY);
+    if (tts.ok) {
+      await sendVoice(token, chatId, tts.audio);
+    }
+  }
+}
+
 export async function handleTelegramWebhook(request, env) {
   const token = env.TELEGRAM_BOT_TOKEN;
   if (!token) {
@@ -122,17 +249,29 @@ export async function handleTelegramWebhook(request, env) {
     return new Response("OK");
   }
 
-  if (!update.message?.text) return new Response("OK");
+  if (!update.message) return new Response("OK");
 
   const chatId = update.message.chat.id;
-  const text = update.message.text.trim();
   const messageId = update.message.message_id;
+
+  // Handle voice messages
+  if (update.message.voice || update.message.audio) {
+    return handleVoiceMessage(update, env, token);
+  }
+
+  const text = update.message.text?.trim();
+  if (!text) return new Response("OK");
 
   // Handle /start and /help
   if (text === "/start" || text === "/help") {
+    const voiceStatus = voiceModeChats.has(chatId) ? "🔊 ON" : "🔇 OFF";
     const helpText = `🏥 *BrainSAIT Healthcare AI*
 
-Available commands:
+🎤 *Voice:* Send me a voice message and BASMA will respond with voice!
+
+📋 *Commands:*
+/voice — Toggle voice responses ${voiceStatus}
+/basma — Hear BASMA introduce herself
 /summary — Patient summary
 /triage — Triage assessment
 /meds — Medication safety
@@ -146,8 +285,26 @@ Available commands:
 /sdoh — SDOH referrals
 /query <question> — Ask about a patient
 
-Or send any message for triage-style analysis.`;
+💬 Or send any text for triage analysis.`;
     await sendMessage(token, chatId, helpText);
+    return new Response("OK");
+  }
+
+  // Handle /voice toggle
+  if (text === "/voice") {
+    if (voiceModeChats.has(chatId)) {
+      voiceModeChats.delete(chatId);
+      await sendMessage(token, chatId, "🔇 Voice responses OFF. Text only mode.");
+    } else {
+      voiceModeChats.add(chatId);
+      await sendMessage(token, chatId, "🔊 Voice responses ON! BASMA will reply with voice.");
+    }
+    return new Response("OK");
+  }
+
+  // Handle /basma intro
+  if (text === "/basma") {
+    await handleBasmaIntro(token, chatId, env);
     return new Response("OK");
   }
 
@@ -179,7 +336,6 @@ Or send any message for triage-style analysis.`;
       agentKey = cmd;
     }
   } else {
-    // Free text → triage
     agentKey = "triage";
     question = text;
   }
@@ -191,7 +347,24 @@ Or send any message for triage-style analysis.`;
 
   const result = await callAgent(agentKey, question, env);
   const label = AGENTS[agentKey]?.label || agentKey;
-  await sendMessage(token, chatId, `*${label}*\n\n${result}`, messageId);
+  const readable = jsonToReadableText(
+    typeof result === "string" ? (() => { try { return JSON.parse(result); } catch { return result; } })() : result
+  );
+
+  await sendMessage(token, chatId, `*${label}*\n\n${readable}`, messageId);
+
+  // Send BASMA voice if voice mode is on
+  if (voiceModeChats.has(chatId) && env.ELEVENLABS_API_KEY) {
+    await sendChatAction(token, chatId, "record_voice");
+    const isArabic = /[\u0600-\u06FF]/.test(text);
+    const voiceText = isArabic
+      ? `مرحباً، نتيجة ${label}: ${readable}`
+      : `Here is the ${label} result: ${readable}`;
+    const tts = await textToSpeech(voiceText, env.ELEVENLABS_API_KEY);
+    if (tts.ok) {
+      await sendVoice(token, chatId, tts.audio, messageId);
+    }
+  }
 
   return new Response("OK");
 }
@@ -221,6 +394,8 @@ export async function handleTelegramSetup(request, env) {
     webhook: webhook.ok ? "configured" : webhook,
     commands: commands.ok ? "configured" : commands,
     webhookUrl,
+    voice: "BASMA (Latifa — Gulf Arabic, warm & energized)",
+    features: ["text", "voice_input", "voice_output", "arabic", "english"],
   }), {
     headers: { "content-type": "application/json", "access-control-allow-origin": "*" },
   });
