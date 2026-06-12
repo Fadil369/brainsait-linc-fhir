@@ -19,6 +19,17 @@ import {
   createReminder, listReminders, completeReminder,
   sendNotification, irisProductionStatus, fullSystemHealth,
 } from "./services/basma-integration.js";
+import {
+  analyzeLabResults, analyzeVitals, calculateTrend, sparkline, formatTrend,
+  CHAINS, runChain, handleEmergencySOS,
+  generateMedSchedule, formatMedSchedule,
+  generateInsights, formatInsights,
+} from "./services/basma-intelligence.js";
+
+// ═══════════════════════════════════════════════════════════
+// Patient Context (per-user)
+// ═══════════════════════════════════════════════════════════
+const patientContext = new Map(); // chatId -> patientId
 
 // ═══════════════════════════════════════════════════════════
 // BASMA — بسمه — BrainSAIT AI Medical Assistant
@@ -136,12 +147,15 @@ async function callAgent(key, question, env) {
 function mainKeyboard(lang) {
   const ar = lang === "ar";
   return { inline_keyboard: [
-    [{ text: ar ? "🚑 طوارئ" : "🚑 Triage", callback_data: "triage" },
+    [{ text: ar ? "🚨 طوارئ SOS" : "🚨 EMERGENCY SOS", callback_data: "sos" },
      { text: ar ? "📋 ملخص" : "📋 Summary", callback_data: "summary" },
      { text: ar ? "💊 أدوية" : "💊 Meds", callback_data: "medication-safety" }],
     [{ text: ar ? "🧪 تحاليل" : "🧪 Labs", callback_data: "lab-explainer" },
      { text: ar ? "🔍 فجوات" : "🔍 Gaps", callback_data: "gaps-in-care" },
      { text: ar ? "📝 خطة" : "📝 Plan", callback_data: "care-plan" }],
+    [{ text: ar ? "🔄 شامل 360" : "🔄 Patient 360", callback_data: "chain_patient-360" },
+     { text: ar ? "🩺 فحص كامل" : "🩺 Full Check", callback_data: "chain_full-checkup" },
+     { text: ar ? "💡 ملاحظات" : "💡 Insights", callback_data: "insights" }],
     [{ text: ar ? "📅 موعد" : "📅 Book", callback_data: "book_appt" },
      { text: ar ? "🔎 بحث" : "🔎 Search", callback_data: "search_menu" },
      { text: ar ? "🏥 نفيس" : "🏥 NPHIES", callback_data: "nphies_menu" }],
@@ -256,6 +270,46 @@ async function handleCallback(cb, env, token) {
   // BASMA intro
   if (data === "basma_intro") {
     await handleBasmaIntro(token, chatId, env, lang);
+    return;
+  }
+
+  // Emergency SOS
+  if (data === "sos") {
+    await sendAction(token, chatId, "typing");
+    const pid = patientContext.get(chatId) || "1";
+    const sos = await handleEmergencySOS(pid, "Patient pressed emergency button", callAgent, env, lang);
+    await sendMsg(token, chatId, sos.report, {
+      reply_markup: { inline_keyboard: [
+        [{ text: "🚑 997", url: "tel:997" }, { text: "🏥 911", url: "tel:911" }],
+        [{ text: lang === "ar" ? "📋 ملخص" : "📋 Summary", callback_data: "summary" },
+         { text: lang === "ar" ? "⬅️ رجوع" : "⬅️ Back", callback_data: "main_menu" }],
+      ]},
+    });
+    return;
+  }
+
+  // Clinical chains
+  if (data.startsWith("chain_")) {
+    const chainKey = data.replace("chain_", "");
+    const chain = CHAINS[chainKey];
+    if (chain) {
+      await sendAction(token, chatId, "typing");
+      const pid = patientContext.get(chatId) || "1";
+      const result = await runChain(chainKey, pid, callAgent, env, lang);
+      await sendMsg(token, chatId, result.summary, { reply_markup: mainKeyboard(lang) });
+    }
+    return;
+  }
+
+  // Health insights
+  if (data === "insights") {
+    await sendAction(token, chatId, "typing");
+    const pid = patientContext.get(chatId) || "1";
+    const { results } = await fhirSearch(env, "Condition", { patient: pid });
+    const { results: meds } = await fhirSearch(env, "MedicationRequest", { patient: pid });
+    const { results: labs } = await fhirSearch(env, "Observation", { patient: pid });
+    const insights = generateInsights({ conditions: results, medications: meds, observations: labs }, lang);
+    await sendMsg(token, chatId, `💡 *${lang === "ar" ? "الملاحظات الذكية" : "Smart Insights"}*\n\n${formatInsights(insights, lang)}`, { reply_markup: mainKeyboard(lang) });
     return;
   }
 
@@ -625,6 +679,125 @@ export async function handleTelegramWebhook(request, env) {
     return new Response("OK");
   }
 
+  // Emergency SOS
+  if (text === "/sos") {
+    await sendAction(token, chatId, "typing");
+    const pid = patientContext.get(chatId) || "1";
+    const symptoms = text.split(" ").slice(1).join(" ") || "emergency situation";
+    const sos = await handleEmergencySOS(pid, symptoms, callAgent, env, lang);
+    await sendMsg(token, chatId, sos.report, {
+      reply_markup: { inline_keyboard: [
+        [{ text: "🚑 997", url: "tel:997" }, { text: "🏥 911", url: "tel:911" }],
+        [{ text: lang === "ar" ? "📋 ملخص" : "📋 Summary", callback_data: "summary" }],
+      ]},
+    });
+    return new Response("OK");
+  }
+
+  // Clinical chains
+  if (text === "/chain") {
+    const chainList = Object.entries(CHAINS).map(([k, v]) => {
+      const desc = lang === "ar" ? v.description(true) : v.descriptionEn;
+      return `${v.icon} /chain_${k} — ${desc}`;
+    }).join("\n");
+    await sendMsg(token, chatId, `🔄 *${lang === "ar" ? "السلاسل السريرية" : "Clinical Chains"}*\n\n${chainList}`);
+    return new Response("OK");
+  }
+
+  if (text.startsWith("/chain_")) {
+    const chainKey = text.slice(7).trim();
+    if (CHAINS[chainKey]) {
+      await sendAction(token, chatId, "typing");
+      const pid = patientContext.get(chatId) || "1";
+      const result = await runChain(chainKey, pid, callAgent, env, lang);
+      await sendMsg(token, chatId, result.summary, { reply_markup: mainKeyboard(lang) });
+    }
+    return new Response("OK");
+  }
+
+  // Health insights
+  if (text === "/insights") {
+    await sendAction(token, chatId, "typing");
+    const pid = patientContext.get(chatId) || "1";
+    const { results: conds } = await fhirSearch(env, "Condition", { patient: pid });
+    const { results: meds } = await fhirSearch(env, "MedicationRequest", { patient: pid });
+    const { results: labs } = await fhirSearch(env, "Observation", { patient: pid });
+    const insights = generateInsights({ conditions: conds, medications: meds, observations: labs }, lang);
+    await sendMsg(token, chatId, `💡 *${lang === "ar" ? "الملاحظات الذكية" : "Smart Insights"}*\n\n${formatInsights(insights, lang)}`, { reply_markup: mainKeyboard(lang) });
+    return new Response("OK");
+  }
+
+  // Medication schedule
+  if (text === "/schedule") {
+    await sendAction(token, chatId, "typing");
+    const pid = patientContext.get(chatId) || "1";
+    const { results: meds } = await fhirSearch(env, "MedicationRequest", { patient: pid });
+    const schedule = generateMedSchedule(meds, lang);
+    await sendMsg(token, chatId, `💊 *${lang === "ar" ? "جدول الأدوية" : "Medication Schedule"}*\n\n${formatMedSchedule(schedule, lang)}`, { reply_markup: mainKeyboard(lang) });
+    return new Response("OK");
+  }
+
+  // Switch patient
+  if (text.startsWith("/switch")) {
+    const pid = text.split(" ")[1];
+    if (pid) {
+      patientContext.set(chatId, pid);
+      await sendMsg(token, chatId, lang === "ar"
+        ? `✅ تم التبديل إلى المريض: ${pid}`
+        : `✅ Switched to patient: ${pid}`, { reply_markup: mainKeyboard(lang) });
+    } else {
+      await sendMsg(token, chatId, lang === "ar"
+        ? "استخدم: /switch معرف_المريض"
+        : "Usage: /switch patient_id");
+    }
+    return new Response("OK");
+  }
+
+  // Health trends
+  if (text === "/trends") {
+    await sendAction(token, chatId, "typing");
+    const pid = patientContext.get(chatId) || "1";
+    const { results: labs } = await fhirSearch(env, "Observation", { patient: pid });
+    if (labs.length === 0) {
+      await sendMsg(token, chatId, lang === "ar" ? "لا توجد تحاليل بعد" : "No lab results yet");
+      return new Response("OK");
+    }
+    // Group by code
+    const byCode = {};
+    for (const lab of labs) {
+      const code = lab.code?.coding?.[0]?.code;
+      if (code) {
+        if (!byCode[code]) byCode[code] = [];
+        byCode[code].push(lab.valueQuantity?.value);
+      }
+    }
+    const trends = Object.entries(byCode).map(([code, values]) => {
+      const ref = { "4548-4": { name: "HbA1c", unit: "%" }, "2345-7": { name: "Glucose", unit: "mg/dL" },
+        "2093-3": { name: "Cholesterol", unit: "mg/dL" }, "2160-0": { name: "Creatinine", unit: "mg/dL" } };
+      const r = ref[code] || { name: code, unit: "" };
+      return formatTrend(r.name, values, r.unit, lang);
+    }).join("\n");
+
+    await sendMsg(token, chatId, `📈 *${lang === "ar" ? "الاتجاهات الصحية" : "Health Trends"}*\n\n${trends}`, { reply_markup: mainKeyboard(lang) });
+    return new Response("OK");
+  }
+
+  // Patient info
+  if (text === "/patient") {
+    const pid = patientContext.get(chatId) || "1";
+    await sendAction(token, chatId, "typing");
+    const { resource: patient } = await fhirRead(env, "Patient", pid);
+    if (patient) {
+      const name = `${patient.name?.[0]?.given?.join(" ")} ${patient.name?.[0]?.family || ""}`;
+      await sendMsg(token, chatId, lang === "ar"
+        ? `👤 *المريض الحالي*\n\nالاسم: ${name}\nالمعرف: ${pid}\nتاريخ الميلاد: ${patient.birthDate || "?"}\nالجنس: ${patient.gender || "?"}\n\n_استخدم /switch لتغيير المريض_`
+        : `👤 *Current Patient*\n\nName: ${name}\nID: ${pid}\nDOB: ${patient.birthDate || "?"}\nGender: ${patient.gender || "?"}\n\n_Use /switch to change patient_`, { reply_markup: mainKeyboard(lang) });
+    } else {
+      await sendMsg(token, chatId, lang === "ar" ? "لم يتم العثور على المريض" : "Patient not found");
+    }
+    return new Response("OK");
+  }
+
   // ── Smart text routing ──
 
   // Handle /book with params
@@ -720,8 +893,15 @@ export async function handleTelegramSetup(request, env) {
     tg("setWebhook", token, { url: webhookUrl, allowed_updates: ["message","callback_query"], max_connections: 10 }),
     tg("setMyCommands", token, { commands: [
       { command: "start", description: "🏥 Start BASMA" },
+      { command: "sos", description: "🚨 Emergency SOS" },
       { command: "dashboard", description: "📊 Control panel" },
       { command: "status", description: "📡 System health" },
+      { command: "patient", description: "👤 Current patient" },
+      { command: "switch", description: "🔄 Switch patient" },
+      { command: "chain", description: "🔗 Clinical chains" },
+      { command: "insights", description: "💡 Smart insights" },
+      { command: "trends", description: "📈 Health trends" },
+      { command: "schedule", description: "💊 Med schedule" },
       { command: "hospitals", description: "🏨 Oracle hospitals" },
       { command: "nphies", description: "🏥 NPHIES claims" },
       { command: "book", description: "📅 Book appointment" },
