@@ -36,6 +36,15 @@ import {
   startProfileBuilder, answerQuestion, generateProfileHTML,
   publishProfile, getProfile, listProfiles,
 } from "./services/basma-profile-builder.js";
+import {
+  generateQRCodeSVG, generateProfileQR,
+  trackProfileView, getProfileAnalytics, formatAnalytics,
+  verifySCFHS, getVerificationBadge,
+  searchProfiles, formatSearchResults,
+  generateEmbedCode, generateShareText, generateVCard,
+  compareProfiles, getProfileRecommendations,
+  updateProfile, deleteProfile, getProfileStats,
+} from "./services/basma-profile-features.js";
 
 // ═══════════════════════════════════════════════════════════
 // BASMA — بسمه — Context-Aware Healthcare AI
@@ -657,6 +666,161 @@ export async function handleTelegramWebhook(request, env) {
     return new Response("OK");
   }
 
+  // QR Code for profile
+  if (text.startsWith("/qr")) {
+    const profileId = text.split(" ")[1];
+    if (profileId) {
+      const profile = await getProfile(env, profileId);
+      if (profile.ok) {
+        const url = `https://dr.elfadil.com/${profile.profile.role}/${profile.profile.slug}`;
+        const qr = generateProfileQR(url, lang);
+        await sendMsg(token, chatId, `📱 *QR Code*\n\n${qr.html}\n\n🔗 ${url}`, {
+          reply_markup: getServiceButtons(ctx, lang),
+        });
+      } else {
+        await sendMsg(token, chatId, lang === "ar" ? "❌ الملف غير موجود" : "❌ Profile not found");
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar" ? "استخدم: /qr معرف_الملف" : "Usage: /qr profile_id");
+    }
+    return new Response("OK");
+  }
+
+  // Profile Analytics
+  if (text.startsWith("/analytics")) {
+    const profileId = text.split(" ")[1];
+    if (profileId) {
+      const analytics = await getProfileAnalytics(env, profileId);
+      if (analytics.ok) {
+        await sendMsg(token, chatId, formatAnalytics(analytics.analytics, lang), {
+          reply_markup: getServiceButtons(ctx, lang),
+        });
+      } else {
+        await sendMsg(token, chatId, lang === "ar" ? "❌ لا توجد إحصائيات" : "❌ No analytics found");
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar" ? "استخدم: /analytics معرف_الملف" : "Usage: /analytics profile_id");
+    }
+    return new Response("OK");
+  }
+
+  // SCFHS Verification
+  if (text.startsWith("/verify")) {
+    const parts = text.split(" ").slice(1);
+    if (parts.length >= 2) {
+      const [scfhsNumber, ...nameParts] = parts;
+      const name = nameParts.join(" ");
+      const result = await verifySCFHS(env, scfhsNumber, name);
+      const badge = getVerificationBadge(result.verified, lang);
+      await sendMsg(token, chatId, `${badge.badge} *${badge.text}*\n\n${result.message}`, {
+        reply_markup: getServiceButtons(ctx, lang),
+      });
+    } else {
+      await sendMsg(token, chatId, lang === "ar"
+        ? "استخدم: /verify رقم_الهيئة الاسم"
+        : "Usage: /verify scfhs_number name");
+    }
+    return new Response("OK");
+  }
+
+  // Search Profiles
+  if (text.startsWith("/search_profile")) {
+    const query = text.split(" ").slice(1).join(" ");
+    if (query) {
+      const results = await searchProfiles(env, query);
+      if (results.ok) {
+        await sendMsg(token, chatId, `🔍 *${lang === "ar" ? "نتائج البحث" : "Search Results"}* (${results.count})\n\n${formatSearchResults(results.profiles, lang)}`, {
+          reply_markup: getServiceButtons(ctx, lang),
+        });
+      } else {
+        await sendMsg(token, chatId, lang === "ar" ? "❌ لا توجد نتائج" : "❌ No results found");
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar" ? "استخدم: /search_profile كلمة_البحث" : "Usage: /search_profile query");
+    }
+    return new Response("OK");
+  }
+
+  // Share Profile
+  if (text.startsWith("/share")) {
+    const profileId = text.split(" ")[1];
+    if (profileId) {
+      const profile = await getProfile(env, profileId);
+      if (profile.ok) {
+        const shareText = generateShareText(profile.profile, lang);
+        await sendMsg(token, chatId, shareText, {
+          reply_markup: { inline_keyboard: [
+            [{ text: lang === "ar" ? "📱 QR Code" : "📱 QR Code", callback_data: `qr_${profileId}` }],
+            [{ text: lang === "ar" ? "📊 إحصائيات" : "📊 Analytics", callback_data: `analytics_${profileId}` }],
+          ]},
+        });
+      } else {
+        await sendMsg(token, chatId, lang === "ar" ? "❌ الملف غير موجود" : "❌ Profile not found");
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar" ? "استخدم: /share معرف_الملف" : "Usage: /share profile_id");
+    }
+    return new Response("OK");
+  }
+
+  // Export vCard
+  if (text.startsWith("/vcard")) {
+    const profileId = text.split(" ")[1];
+    if (profileId) {
+      const profile = await getProfile(env, profileId);
+      if (profile.ok) {
+        const vcard = generateVCard(profile.profile);
+        const blob = new Blob([vcard], { type: "text/vcard" });
+        const form = new FormData();
+        form.append("chat_id", String(chatId));
+        form.append("document", blob, `${profile.profile.name}.vcf`);
+        form.append("caption", lang === "ar" ? "📱 بطاقة الاتصال" : "📱 Contact Card");
+        await tgForm("sendDocument", token, form);
+      } else {
+        await sendMsg(token, chatId, lang === "ar" ? "❌ الملف غير موجود" : "❌ Profile not found");
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar" ? "استخدم: /vcard معرف_الملف" : "Usage: /vcard profile_id");
+    }
+    return new Response("OK");
+  }
+
+  // Profile Statistics
+  if (text === "/stats") {
+    const stats = await getProfileStats(env);
+    if (stats.ok) {
+      const { total, byRole, recent } = stats.stats;
+      const roleList = Object.entries(byRole).map(([r, c]) => `${r === "doctor" ? "🏥" : r === "partner" ? "🤝" : r === "team" ? "👥" : "🎓"} ${r}: ${c}`).join("\n");
+      const recentList = recent.map(p => `• ${p.name} (${p.role})`).join("\n");
+      await sendMsg(token, chatId, `📊 *${lang === "ar" ? "إحصائيات الملفات" : "Profile Statistics"}*\n\n📋 ${lang === "ar" ? "الإجمالي" : "Total"}: ${total}\n\n${roleList}\n\n📅 ${lang === "ar" ? "الأخيرة" : "Recent"}:\n${recentList}`, {
+        reply_markup: getServiceButtons(ctx, lang),
+      });
+    } else {
+      await sendMsg(token, chatId, lang === "ar" ? "❌ لا توجد إحصائيات" : "❌ No statistics found");
+    }
+    return new Response("OK");
+  }
+
+  // Embed Code
+  if (text.startsWith("/embed")) {
+    const profileId = text.split(" ")[1];
+    if (profileId) {
+      const profile = await getProfile(env, profileId);
+      if (profile.ok) {
+        const url = `https://dr.elfadil.com/${profile.profile.role}/${profile.profile.slug}`;
+        const embedCode = generateEmbedCode(url);
+        await sendMsg(token, chatId, `🔗 *${lang === "ar" ? "كود التضمين" : "Embed Code"}*\n\n\`\`\`html\n${embedCode}\n\`\`\``, {
+          reply_markup: getServiceButtons(ctx, lang),
+        });
+      } else {
+        await sendMsg(token, chatId, lang === "ar" ? "❌ الملف غير موجود" : "❌ Profile not found");
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar" ? "استخدم: /embed معرف_الملف" : "Usage: /embed profile_id");
+    }
+    return new Response("OK");
+  }
+
   // Profile Builder Conversation
   const profileSession = getProfileSession(chatId);
   if (profileSession.state === "collecting") {
@@ -758,6 +922,14 @@ export async function handleTelegramSetup(request, env) {
       { command: "sos", description: "🚨 Emergency SOS" },
       { command: "build", description: "🏗️ Build profile" },
       { command: "profile", description: "📋 My profiles" },
+      { command: "qr", description: "📱 QR code" },
+      { command: "analytics", description: "📊 Profile analytics" },
+      { command: "verify", description: "✅ SCFHS verify" },
+      { command: "search_profile", description: "🔍 Search profiles" },
+      { command: "share", description: "📤 Share profile" },
+      { command: "vcard", description: "📱 Export vCard" },
+      { command: "stats", description: "📊 Statistics" },
+      { command: "embed", description: "🔗 Embed code" },
       { command: "basma", description: "🏥 Meet BASMA" },
       { command: "context", description: "👤 My context" },
       { command: "help", description: "❓ Help" },
