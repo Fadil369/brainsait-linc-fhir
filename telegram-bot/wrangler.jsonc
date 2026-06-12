@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "drnajeeb-bot",
+  "main": "./src/index.ts",
+  "compatibility_date": "2026-06-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "d7b99530559ab4f2545e9bdc72a7ab9b",
+  "observability": { "enabled": true },
+
+  "browser": {
+    "binding": "MYBROWSER"
+  },
+
+  "kv_namespaces": [
+    {
+      "binding": "SESSION_KV",
+      "id": "5b9f673b131a4a4399e31d924281e80a"
+    }
+  ],
+
+  "vars": {
+    "TELEGRAM_BOT_TOKEN": "8532100774:AAF9fMZg3Oucm8ugSAt7-4vxqI-kJn57rf8",
+    "TELEGRAM_WEBHOOK_SECRET": "drnajeeb_secret_2026",
+    "ALLOWED_USERS": "2076569901",
+    "BRAINSAIT_CHANNEL": "-1002047131363",
+    "DRNAJEEB_LOGIN_URL": "https://members.drnajeeblectures.com/t/u/activeCourses",
+    "DRNAJEEB_COURSES_URL": "https://members.drnajeeblectures.com/t/u/activeCourses",
+    "DRNAJEEB_NOTES_URL": "https://members.drnajeeblectures.com/courses/Dr-Najeeb-Notes-and-Drawings-673df66371562450abf98c49"
+  }
+}

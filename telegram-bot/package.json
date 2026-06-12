@@ -1,0 +1,19 @@
+{
+  "name": "drnajeeb-telegram-bot",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types",
+    "set-webhook": "node scripts/set-webhook.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/puppeteer": "^1.0.0",
+    "wrangler": "^4.0.0",
+    "typescript": "^5.6.0"
+  }
+}
