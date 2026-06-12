@@ -332,14 +332,11 @@ brainsait-linc-fhir/
 ## 🧪 Testing
 
 ```bash
-# Run all E2E tests (417)
+# Run all tests (E2E + integration audit)
 npm test
-
-# Run integration chain audit (208)
-node test/integration-audit.js
-
-# Both suites: 625 total checks, 0 failures
 ```
+
+> Note: E2E tests validate data structures, constants, and agent definitions offline (no server required). Integration audit requires the worker to be running at `http://localhost:8787`.
 
 ---
 

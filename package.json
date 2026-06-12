@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext jsx,js --report-unused-disable-directives"
+    "lint": "eslint . --ext jsx,js --report-unused-disable-directives",
+    "test": "node test/e2e.js && node test/integration-audit.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
