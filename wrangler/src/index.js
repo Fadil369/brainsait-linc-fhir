@@ -12,6 +12,7 @@ import { handleOracleBridge } from "./agents/oracle-bridge-connector.js";
 import { handleOracleLogin } from "./agents/oracle-login.js";
 import { handleFHIR } from "./agents/fhir-server.js";
 import { handleOrchestrate, registerHandlers } from "./agents/orchestrator.js";
+import { handleTelegramWebhook, handleTelegramSetup } from "./telegram-bot.js";
 
 // Register handlers with the orchestrator for direct function calls
 registerHandlers({
@@ -183,6 +184,14 @@ export default {
     // Ecosystem proxy — routes to HNH, NPHIES, BASMA, GIVC, SBS, Oracle, etc.
     if (path.startsWith("/api/ecosystem")) {
       return handleEcosystem(request, env);
+    }
+
+    // Telegram Bot Integration
+    if (path === "/api/telegram/webhook" && request.method === "POST") {
+      return handleTelegramWebhook(request, env);
+    }
+    if (path === "/api/telegram/setup") {
+      return handleTelegramSetup(request, env);
     }
 
     // Serve the shadcn React SPA from Cloudflare Pages

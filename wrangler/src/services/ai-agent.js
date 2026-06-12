@@ -1,7 +1,7 @@
 import { IrisConnector } from "./iris-connector.js";
 import { callMiMo } from "./mimo-client.js";
 
-const CF_MODEL = "@cf/meta/llama-3.2-3b-instruct";
+const CF_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
 export class AIAgent {
   constructor(name, goal, env) {
