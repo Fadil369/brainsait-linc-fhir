@@ -18,7 +18,7 @@ enabled = true
 
 [vars]
 MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com"
-MIMO_MODEL = "tp-s5blprvpranxs2a175656bbu8y83nsm9no5825swjlldhxvg"
+MIMO_MODEL = "mimo-v2.5-pro"
 
 [[d1_databases]]
 binding = "FHIR_DB"

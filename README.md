@@ -117,7 +117,7 @@ The base URL and model are pre-configured in `wrangler/wrangler.toml`:
 ```toml
 [vars]
 MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com"
-MIMO_MODEL = "tp-s5blprvpranxs2a175656bbu8y83nsm9no5825swjlldhxvg"
+MIMO_MODEL = "mimo-v2.5-pro"
 ```
 
 #### Option B: Cloudflare Workers AI (Fallback)
@@ -306,7 +306,7 @@ MiMo auto-detects the endpoint shape: tries OpenAI-compatible first, falls back 
 # wrangler.toml — MiMo vars (safe to commit)
 [vars]
 MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com"
-MIMO_MODEL = "tp-s5blprvpranxs2a175656bbu8y83nsm9no5825swjlldhxvg"
+MIMO_MODEL = "mimo-v2.5-pro"
 ```
 
 ```bash
