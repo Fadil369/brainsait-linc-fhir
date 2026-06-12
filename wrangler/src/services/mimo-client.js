@@ -54,7 +54,7 @@ async function tryAnthropic(base, apiKey, systemPrompt, messages, model, signal)
 
 export async function callMiMo(messages, systemPrompt, env, opts = {}) {
   const apiKey = env?.MIMO_API_KEY;
-  const base = env?.MIMO_API_BASE || "https://token-plan-sgp.xiaomimimo.com";
+  const base = env?.MIMO_API_BASE || "https://token-plan-sgp.xiaomimimo.com/v1";
   const model = env?.MIMO_MODEL || "";
 
   if (!apiKey) {

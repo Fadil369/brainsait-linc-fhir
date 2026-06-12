@@ -126,11 +126,11 @@ npx wrangler secret put MIMO_API_KEY
 The base URL and model are pre-configured in `wrangler/wrangler.toml`:
 ```toml
 [vars]
-MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com"
+MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com/v1"
 MIMO_MODEL = "mimo-v2.5-pro"
 ```
 
-> **Note:** MiMo (`mimo-v2.5-pro`) is Xiaomi's proprietary model served via `token-plan-sgp.xiaomimimo.com`. It may be unreachable from Cloudflare Workers edge due to network restrictions. Use Workers AI for reliable edge inference.
+> **Note:** MiMo (`mimo-v2.5-pro`) is Xiaomi's proprietary model served via `token-plan-sgp.xiaomimimo.com/v1`. It may be unreachable from Cloudflare Workers edge due to network restrictions. Use Workers AI for reliable edge inference.
 
 #### Verify LLM is Working
 
@@ -300,14 +300,14 @@ The `AIAgent.reason()` method resolves the LLM provider in this order:
 | 2° | **MiMo Token Plan API** | `env.MIMO_API_KEY` exists | `MIMO_API_BASE/v1/chat/completions` (Xiaomi `mimo-v2.5-pro`) |
 | 3° | Graceful error | Neither configured | `{"error": "AI unavailable...", "status": "unavailable"}` |
 
-Workers AI runs natively on Cloudflare edge (250+ locations) with zero cold-start latency. MiMo (Xiaomi's `mimo-v2.5-pro`) provides an external fallback — requires network access from Workers to `token-plan-sgp.xiaomimimo.com`.
+Workers AI runs natively on Cloudflare edge (250+ locations) with zero cold-start latency. MiMo (Xiaomi's `mimo-v2.5-pro`) provides an external fallback — requires network access from Workers to `token-plan-sgp.xiaomimimo.com/v1`.
 
 ### LLM Configuration
 
 ```toml
 # wrangler.toml — MiMo vars (safe to commit)
 [vars]
-MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com"
+MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com/v1"
 MIMO_MODEL = "mimo-v2.5-pro"
 ```
 

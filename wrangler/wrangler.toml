@@ -20,7 +20,7 @@ enabled = true
 binding = "AI"
 
 [vars]
-MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com"
+MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com/v1"
 MIMO_MODEL = "mimo-v2.5-pro"
 
 [[d1_databases]]
