@@ -3,6 +3,16 @@
 > **InterSystems Programming Contest Submission** — *AI Agents for FHIR*
 > 🏆 12 Contest Tasks | 60/60 Bonus Points | FHIR R4 | NPHIES | Multi-Provider LLM
 
+## 🚀 Quick Links
+
+| Resource | URL |
+|----------|-----|
+| 🤖 **Telegram Bot** | [@brainsait_bot](https://t.me/brainsait_bot) |
+| 📊 **Contest Agents Dashboard** | [brainsait-contest-agents.brainsait-fadil.workers.dev](https://brainsait-contest-agents.brainsait-fadil.workers.dev) |
+| 🤗 **HF Models Hub** | [brainsait-hf-models.brainsait-fadil.workers.dev](https://brainsait-hf-models.brainsait-fadil.workers.dev) |
+| 🏥 **Ecosystem Portal** | [brainsait-ecosystem.brainsait-fadil.workers.dev](https://brainsait-ecosystem.brainsait-fadil.workers.dev) |
+| 📄 **GitHub Pages** | [brainsait-linc-fhir.pages.dev](https://a722fb73.brainsait-linc-fhir.pages.dev) |
+
 **AI Models:**
 | Priority | Provider | Configuration |
 |----------|----------|---------------|
