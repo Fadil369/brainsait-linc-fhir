@@ -1,4 +1,4 @@
-const DEFAULT_TIMEOUT_MS = 30000;
+const DEFAULT_TIMEOUT_MS = 15000;
 const MAX_RETRIES = 2;
 const MAX_TOKENS = 1500;
 
@@ -64,14 +64,13 @@ export async function callMiMo(messages, systemPrompt, env, opts = {}) {
     return { ok: false, error: "Empty messages" };
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-  if (opts.signal) {
-    opts.signal.addEventListener("abort", () => controller.abort());
-  }
-
   let lastError = null;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+    if (opts.signal) {
+      opts.signal.addEventListener("abort", () => controller.abort());
+    }
     try {
       const oai = await tryOpenAI(base, apiKey, messages, model, controller.signal);
       if (oai.ok) { clearTimeout(timeout); return oai; }
@@ -85,10 +84,10 @@ export async function callMiMo(messages, systemPrompt, env, opts = {}) {
     } catch (err) {
       lastError = err?.name === "AbortError" ? `MiMo timed out after ${DEFAULT_TIMEOUT_MS}ms` : err?.message || String(err);
     }
+    clearTimeout(timeout);
     if (attempt < MAX_RETRIES) {
       await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
     }
   }
-  clearTimeout(timeout);
   return { ok: false, error: `MiMo unavailable after ${MAX_RETRIES + 1} attempts: ${lastError}` };
 }
