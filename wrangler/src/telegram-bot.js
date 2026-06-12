@@ -55,9 +55,9 @@ const ROUTING_RULES = [
 
 // BASMA personality
 const BASMA = {
-  name_ar: "بصمة",
+  name_ar: "بسمه",
   name_en: "BASMA",
-  full_ar: "بصمة — المساعد الطبي الذكي من برين سايت",
+  full_ar: "بسمه — المساعد الطبي الذكي من برين سايت",
   full_en: "BASMA — BrainSAIT AI Medical Assistant",
   tagline_ar: "مساعدك الصحي الذكي",
   tagline_en: "Your Smart Healthcare Assistant",
@@ -234,7 +234,7 @@ ${agentList}
 /dashboard — لوحة القيادة
 /status — حالة النظام
 /voice — تبديل الصوت
-/basma — تعريف بصمة
+/basma — تعريف بسمه
 /help — المساعدة`
     : `🏥 *${BASMA.full_en}*
 
@@ -310,7 +310,7 @@ function quickActionsKeyboard(lang) {
       ],
       [
         { text: ar ? "📊 لوحة القيادة" : "📊 Dashboard", callback_data: "dashboard" },
-        { text: ar ? "🔊 بصمة" : "🔊 BASMA", callback_data: "basma_intro" },
+        { text: ar ? "🔊 بسمه" : "🔊 BASMA", callback_data: "basma_intro" },
       ],
     ],
   };
@@ -365,7 +365,7 @@ async function processVoice(update, env, token) {
     await sendChatAction(token, chatId, "record_voice");
     const readable = jsonToReadable(result.data || result.error, lang);
     const voiceText = lang === "ar"
-      ? `مرحباً، أنا بصمة. ${AGENTS[agentKey].ar}: ${readable}`
+      ? `مرحباً، أنا بسمه. ${AGENTS[agentKey].ar}: ${readable}`
       : `Hello, I am BASMA. ${AGENTS[agentKey].en}: ${readable}`;
     const tts = await textToSpeech(voiceText, env.ELEVENLABS_API_KEY);
     if (tts.ok) {
@@ -379,7 +379,7 @@ async function processVoice(update, env, token) {
 // ═══════════════════════════════════════════════════════════
 
 async function handleBasmaIntro(token, chatId, env, lang = "ar") {
-  const introAr = `مرحباً! أنا *بصمة* 🌟
+  const introAr = `مرحباً! أنا *بسمه* 🌟
 مساعدك الطبي الذكي من *برين سايت*.
 
 أنا أتحدث العربية واللهجة السعودية بطلاقة.
@@ -496,13 +496,13 @@ export async function handleTelegramWebhook(request, env) {
     const help = lang === "ar"
       ? `🏥 *${BASMA.full_ar}*
 
-🎤 *الصوت:* أرسل رسالة صوتية و بصمة سترد عليك!
+🎤 *الصوت:* أرسل رسالة صوتية و بسمه سترد عليك!
 
 📋 *الأوامر:*
 /dashboard — لوحة القيادة الشاملة
 /status — حالة النظام
 /voice — تبديل ردود الصوت
-/basma — تعريف بصمة
+/basma — تعريف بسمه
 /summary — ملخص المريض
 /triage — فحص طوارئ
 /meds — سلامة الأدوية
@@ -571,7 +571,7 @@ export async function handleTelegramWebhook(request, env) {
     } else {
       voiceState[chatId] = true;
       await sendMessage(token, chatId,
-        lang === "ar" ? "🔊 وضع الصوت مفعّل! بصمة سترد بصوتها." : "🔊 Voice mode ON! BASMA will reply with voice.");
+        lang === "ar" ? "🔊 وضع الصوت مفعّل! بسمه سترد بصوتها." : "🔊 Voice mode ON! BASMA will reply with voice.");
     }
     env.__VOICE_MODE = voiceState;
     return new Response("OK");
