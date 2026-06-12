@@ -1,7 +1,9 @@
 # BrainSAIT Unified AI Agents for FHIR
 
 > **InterSystems Programming Contest Submission** — *AI Agents for FHIR*
-> 🏆 12 Contest Tasks | 60/60 Bonus Points | FHIR R4 | NPHIES | Cloudflare Edge
+> 🏆 12 Contest Tasks | 60/60 Bonus Points | FHIR R4 | NPHIES | Cloudflare Workers AI
+
+**AI Model:** `@cf/meta/llama-3.2-3b-instruct` (Cloudflare Workers AI) — 12 AI agents powered by LLM reasoning over FHIR patient data, served at the edge.
 
 ---
 
@@ -9,28 +11,36 @@
 
 **BrainSAIT LINC FHIR** is a fully integrated platform that unifies **9 LINC AI agents** with **12 contest-ready AI agents** for the InterSystems IRIS ecosystem. It provides a bilingual (Arabic/English) dashboard, Cloudflare Workers deployment, and ObjectScript production classes — all working together under a single MASTERLINC orchestrator.
 
+All 12 AI agents use **Cloudflare Workers AI** (`@cf/meta/llama-3.2-3b-instruct`) for LLM-powered clinical reasoning. Each agent retrieves real FHIR patient data (via D1 database or IRIS) and generates structured JSON responses with:
+- Clinical summaries, prior authorization evaluations, care gaps identification
+- Medication safety reviews, care plans, clinical trial matching
+- Readmission risk scoring, triage assessment, lab result explanations
+- Natural language FHIR querying, SDOH referral matching
+
 ### Architecture
 
 ```
-Client / Dashboard (React + shadcn/ui)
+Client / Dashboard (React + shadcn/ui, port 3000)
        │
        ▼
-  brainsait-api-gateway ──► JWT · CORS · Rate Limit
+  Cloudflare Worker (port 8787 local / *.brainsait.org production)
        │
-       ├── /api/agents/*        ──► 9 LINC Agent endpoints
-       ├── /api/contest/*       ──► 12 Contest AI Agent endpoints
-       ├── /api/fhir/*          ──► FHIR R4 resources
-       ├── /api/compliance/*    ──► HIPAA/NPHIES audit
-       └── /api/intersystems/*  ──► IRIS bridge
+       ├── /api/contest/*       ──► 12 AI Agents (Cloudflare Workers AI)
+       │                           Llama 3.2-3B + FHIR patient context
+       ├── /fhir/*              ──► FHIR R4 server (D1 database)
+       ├── /api/agents/*        ──► 9 LINC Agent definitions
+       ├── /api/workers/*       ──► Cloudflare Worker catalog
+       ├── /api/orchestrate/*   ──► Multi-agent orchestration
+       └── /api/ecosystem/*     ──► Ecosystem proxy
                │
                ▼
-  Cloudflare Workers (25 total)
-       │
-       ▼
-  InterSystems IRIS Production (BRAINSAIT namespace)
-       │
-       ├── BrainSAIT.Production.MASTERLINC
-       ├── BrainSAIT.Production.CLAIMLINC
+  D1 Database (brainsait-healthcare-d1)
+       ├── Patient, Condition, MedicationRequest
+       ├── Observation, Encounter, AllergyIntolerance
+       ├── CarePlan, Goal, Immunization
+       └── Full FHIR R4 CRUD via /fhir/* endpoints
+
+  Optional: InterSystems IRIS (port 52773)
        ├── BrainSAIT.Production.* (10 production classes)
        └── BrainSAIT.Contest.* (12 contest agent classes)
 ```
@@ -40,12 +50,13 @@ Client / Dashboard (React + shadcn/ui)
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 20+ 
-- InterSystems IRIS for Health (Community Edition)
-- Cloudflare account (for Worker deployment)
+- Node.js 20+
 - npm or yarn
+- Cloudflare account (for Worker deployment, **optional for local dev**)
 
-### Installation
+### Installation & Local Development
+
+The app runs completely standalone with just the frontend + Cloudflare Worker — no Docker or IRIS needed.
 
 ```bash
 # Clone the repository
@@ -55,32 +66,110 @@ cd brainsait-linc-fhir
 # Install dependencies
 npm install
 
-# Start development server
+# Start the Vite development server (port 3000)
 npm run dev
-
-# Build for production
-npm run build
 ```
 
-### IRIS Deployment
+The frontend will be available at: **http://localhost:3000/**
 
-1. Open IRIS Management Portal
-2. Import classes from `intersystems/src/` and `intersystems/src/contest/`
-3. Import `intersystems/module.xml` via IPM
-4. Start the `BrainSAIT.Production.MasterUnified` production
+### D1 Database Setup (FHIR Data)
 
-### Cloudflare Workers
+The FHIR server and AI agents need patient data in the D1 database. Set it up with:
 
 ```bash
-# Navigate to wrangler config
-cd wrangler
+# Install wrangler if needed
+npm install -g wrangler
 
-# Deploy the unified worker
+# Create the D1 database (first time only)
+npx wrangler d1 create brainsait-healthcare-d1
+
+# Apply schema
+npx wrangler d1 execute brainsait-healthcare-d1 --file=./wrangler/schema.sql
+
+# Seed with test patient data (Ahmed Al-Harbi, P-5842)
+npx wrangler d1 execute brainsait-healthcare-d1 --file=./wrangler/seed-data.sql
+
+# Verify the data
+npx wrangler d1 execute brainsait-healthcare-d1 --command="SELECT COUNT(*) as count FROM fhir_resources"
+```
+
+This creates a FHIR patient with conditions (hypertension, diabetes, asthma, CKD), medications, allergies, lab results, encounters, immunizations, and care plans — all data needed by the 12 AI agents.
+
+### Cloudflare Workers (Local Development)
+
+```bash
+# Start local worker (port 8787) with D1 binding
+npx wrangler dev --d1 FHIR_DB=brainsait-healthcare-d1
+
+# Deploy to Cloudflare
 npx wrangler deploy
 
 # Deploy with environment
 npx wrangler deploy --env production
 ```
+
+The worker provides all API endpoints locally at: **http://localhost:8787/**
+
+### Docker (Optional — Full Ecosystem)
+
+If you want the full BRAINSAIT ecosystem with IRIS, PostgreSQL, and Redis:
+
+```bash
+# Navigate to ecosystem docker config
+cd ~/brainsait-unified
+
+# Start all core services (IRIS, PostgreSQL, Redis)
+# Cloudflare Tunnel is excluded by default for local development
+docker compose -f docker-compose.yml up -d
+
+# IRIS Management Portal:
+# http://localhost:52773/csp/sys/UtilHome.csp
+
+# To include Cloudflare Tunnel (production only):
+docker compose --profile full up -d
+```
+
+### IRIS Deployment (Optional — Advanced)
+
+1. Open IRIS Management Portal at `http://localhost:52773/csp/sys/UtilHome.csp`
+2. Import classes from `intersystems/src/` and `intersystems/src/contest/`
+3. Import `intersystems/module.xml` via IPM
+4. Start the `BrainSAIT.Production.MasterUnified` production
+
+---
+
+## 🌐 Live Access
+
+### Local Access (Development)
+
+When running locally, the following URLs are available:
+
+| Service | URL |
+|---------|-----|
+| Frontend (Vite dev server) | `http://localhost:3000/` |
+| Worker API (wrangler dev) | `http://localhost:8787/` |
+| Worker Health | `http://localhost:8787/api/health` |
+| FHIR R4 Server | `http://localhost:8787/fhir/metadata` |
+| FHIR Patient API | `http://localhost:8787/fhir/Patient/P-5842` |
+| IRIS Portal (if Docker running) | `http://localhost:52773/csp/sys/UtilHome.csp` |
+| AI Agent: Summary | `http://localhost:8787/api/contest/summary?patient=P-5842&role=doctor` |
+
+> **Note:** Ports 58080, 58081, 58773, 58082, 58083, 3001 are **not used** by this project. Those belong to the broader BRAINSAIT ecosystem API Gateway, Dashboard, Supervisor, and Grafana services which are separate Python microservices. This contest submission is self-contained with just the Vite frontend (port 3000) and the Cloudflare Worker (port 8787 locally).
+
+### Public Access (Production)
+
+When deployed to Cloudflare, the app is available at:
+
+| Service | URL |
+|---------|-----|
+| Production Worker | `https://iris-fhir.brainsait.org/` |
+| API Health | `https://iris-fhir.brainsait.org/api/health` |
+| FHIR R4 | `https://iris-fhir.brainsait.org/fhir/` |
+| Dashboard UI | `https://brainsait-linc-fhir.pages.dev/` |
+
+### Cloudflare Tunnel (Production Only)
+
+The Cloudflare Tunnel is only needed for exposing IRIS to the public internet in production. For local development, it is **not required** — the tunnel service is excluded by default via Docker profiles.
 
 ---
 
@@ -103,43 +192,91 @@ npx wrangler deploy --env production
 
 ### 🔍 Demo API Calls
 
+All API calls work against the local worker (`localhost:8787`) or the deployed worker. Use patient `P-5842` (Ahmed Al-Harbi, included in seed data).
+
 ```bash
+# 0. Health check (no auth required)
+curl http://localhost:8787/api/health
+
+# FHIR server (no auth required)
+curl http://localhost:8787/fhir/metadata
+curl http://localhost:8787/fhir/Patient/P-5842
+
 # 1. Patient Summary (Doctor role)
-curl "https://brainsait.io/api/contest/summary?patient=Patient/101&role=doctor"
+curl "http://localhost:8787/api/contest/summary?patient=P-5842&role=doctor"
 
 # 2. Prior Authorization
-curl "https://brainsait.io/api/contest/prior-auth?patient=Patient/101&service=99213"
+curl "http://localhost:8787/api/contest/prior-auth?patient=P-5842&service=99213"
 
 # 3. Gaps in Care
-curl "https://brainsait.io/api/contest/gaps-in-care?patient=Patient/101"
+curl "http://localhost:8787/api/contest/gaps-in-care?patient=P-5842"
 
 # 4. Medication Safety
-curl "https://brainsait.io/api/contest/medication-safety?patient=Patient/101"
+curl "http://localhost:8787/api/contest/medication-safety?patient=P-5842"
 
 # 5. Care Plan Navigator
-curl "https://brainsait.io/api/contest/care-plan?patient=Patient/101"
+curl "http://localhost:8787/api/contest/care-plan?patient=P-5842"
 
 # 6. Clinical Trial Matcher
-curl "https://brainsait.io/api/contest/clinical-trials?patient=Patient/101"
+curl "http://localhost:8787/api/contest/clinical-trials?patient=P-5842"
 
 # 7. Readmission Risk
-curl "https://brainsait.io/api/contest/readmission-risk?patient=Patient/101"
+curl "http://localhost:8787/api/contest/readmission-risk?patient=P-5842"
 
 # 8. FHIR Triage
-curl "https://brainsait.io/api/contest/triage?patient=Patient/101&symptoms=chest%20pain"
+curl "http://localhost:8787/api/contest/triage?patient=P-5842&symptoms=chest%20pain"
 
 # 9. Imaging Follow-Up
-curl "https://brainsait.io/api/contest/imaging-followup?patient=Patient/101"
+curl "http://localhost:8787/api/contest/imaging-followup?patient=P-5842"
 
 # 10. Lab Explainer
-curl "https://brainsait.io/api/contest/lab-explainer?patient=Patient/101"
+curl "http://localhost:8787/api/contest/lab-explainer?patient=P-5842"
 
 # 11. Natural Language Query
-curl "https://brainsait.io/api/contest/nl-query?q=Show%20me%20diabetic%20patients%20with%20HbA1c%20over%207"
+curl "http://localhost:8787/api/contest/nl-query?q=Show%20me%20diabetic%20patients%20with%20HbA1c%20over%207"
 
 # 12. SDOH Referral
-curl "https://brainsait.io/api/contest/sdoh-referral?needs=food,transportation"
+curl "http://localhost:8787/api/contest/sdoh-referral?needs=food,transportation"
 ```
+
+**Note:** For production, replace `http://localhost:8787` with your deployed worker URL (e.g. `https://iris-fhir.brainsait.org`).
+
+---
+
+## 🤖 AI Implementation
+
+### LLM Model
+- **Provider:** Cloudflare Workers AI (edge inference)
+- **Model:** `@cf/meta/llama-3.2-3b-instruct` — 3B parameter instruction-tuned LLM
+- **Deployment:** Runs at Cloudflare edge (250+ locations), zero cold-start latency
+- **Fallback:** Agents can also run with any OpenAI-compatible API via configuration
+
+### How the AI Agents Work
+
+Each agent follows this pipeline:
+
+1. **Receive request** — Patient ID and optional parameters (role, symptoms, query, etc.)
+2. **Fetch FHIR context** — Retrieves real patient data from D1 database or IRIS: Patient demographics, active conditions, medications, allergies, encounters, lab observations
+3. **Construct LLM prompt** — Domain-specific system prompt with patient FHIR context
+4. **Run inference** — Calls Cloudflare Workers AI with `@cf/meta/llama-3.2-3b-instruct`
+5. **Parse JSON output** — Extracts structured JSON response, auto-repairs malformed JSON
+6. **Return FHIR-native response** — Every agent returns FHIR-compatible JSON
+
+### Agent Architecture
+
+```
+Request → AIAgent class → IrisConnector.getPatientContext(patientId)
+                              ↓
+    patient, conditions, medications, allergies, encounters, observations
+                              ↓
+    AIAgent.reason(systemPrompt, userMessage)
+                              ↓
+    env.AI.run("@cf/meta/llama-3.2-3b-instruct", { messages, max_tokens: 1500 })
+                              ↓
+    Structured JSON → Agent-specific handler → Response
+```
+
+All 12 contest agents share this same architecture, with specialized system prompts for each clinical task.
 
 ---
 
@@ -270,8 +407,13 @@ Show the test suite passing (417 E2E + 208 integration = 0 failures). Open sourc
 ## 🔗 Links
 
 - **GitHub**: https://github.com/Fadil369/brainsait-linc-fhir
-- **Dashboard**: https://brainsait.io
-- **API Health**: https://brainsait.io/api/health
+- **Production Worker**: https://iris-fhir.brainsait.org/
+- **Deployed Frontend**: https://brainsait-linc-fhir.pages.dev/
+- **Local Frontend**: http://localhost:3000/
+- **Local Worker API**: http://localhost:8787/
+- **Local Worker Health**: http://localhost:8787/api/health
+- **Local FHIR Server**: http://localhost:8787/fhir/metadata
+- **IRIS Portal (with Docker)**: http://localhost:52773/csp/sys/UtilHome.csp
 - **InterSystems Community**: https://community.intersystems.com
 
 ---
