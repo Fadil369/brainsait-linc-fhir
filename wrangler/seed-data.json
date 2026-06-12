@@ -1,0 +1,162 @@
+[
+  {
+    "resourceType": "Patient",
+    "id": "P-5842",
+    "identifier": [{ "system": "urn:oid:1.2.3.4.5.6", "value": "1123456789" }],
+    "name": [{ "use": "official", "family": "Al-Harbi", "given": ["Ahmed", "Ali"] }],
+    "name_ar": "أحمد علي الحربي",
+    "gender": "male",
+    "birthDate": "1968-03-15",
+    "address": [{ "city": "Riyadh", "country": "SA" }],
+    "telecom": [{ "system": "phone", "value": "+966 55 123 4567" }]
+  },
+  {
+    "resourceType": "Condition",
+    "id": "C-001",
+    "clinicalStatus": { "coding": [{ "code": "active" }] },
+    "code": { "coding": [{ "code": "I10", "display": "Essential hypertension" }] },
+    "subject": { "reference": "Patient/P-5842" },
+    "onsetDateTime": "2019-11-01"
+  },
+  {
+    "resourceType": "Condition",
+    "id": "C-002",
+    "clinicalStatus": { "coding": [{ "code": "active" }] },
+    "code": { "coding": [{ "code": "E11.9", "display": "Type 2 diabetes without complications" }] },
+    "subject": { "reference": "Patient/P-5842" },
+    "onsetDateTime": "2020-05-15"
+  },
+  {
+    "resourceType": "Condition",
+    "id": "C-003",
+    "clinicalStatus": { "coding": [{ "code": "active" }] },
+    "code": { "coding": [{ "code": "J45.909", "display": "Asthma" }] },
+    "subject": { "reference": "Patient/P-5842" },
+    "onsetDateTime": "1995-08-20"
+  },
+  {
+    "resourceType": "Condition",
+    "id": "C-004",
+    "clinicalStatus": { "coding": [{ "code": "active" }] },
+    "code": { "coding": [{ "code": "N18.3", "display": "Chronic kidney disease stage 3" }] },
+    "subject": { "reference": "Patient/P-5842" },
+    "onsetDateTime": "2023-02-10"
+  },
+  {
+    "resourceType": "MedicationRequest",
+    "id": "M-001",
+    "status": "active",
+    "medicationCodeableConcept": { "coding": [{ "code": "314076", "display": "Lisinopril 10mg" }] },
+    "subject": { "reference": "Patient/P-5842" },
+    "authoredOn": "2019-11-01",
+    "dosageInstruction": [{ "text": "10mg daily" }]
+  },
+  {
+    "resourceType": "MedicationRequest",
+    "id": "M-002",
+    "status": "active",
+    "medicationCodeableConcept": { "coding": [{ "code": "151170", "display": "Metformin 500mg" }] },
+    "subject": { "reference": "Patient/P-5842" },
+    "authoredOn": "2020-05-15",
+    "dosageInstruction": [{ "text": "500mg BID" }]
+  },
+  {
+    "resourceType": "MedicationRequest",
+    "id": "M-003",
+    "status": "active",
+    "medicationCodeableConcept": { "coding": [{ "code": "259255", "display": "Atorvastatin 20mg" }] },
+    "subject": { "reference": "Patient/P-5842" },
+    "authoredOn": "2019-11-01",
+    "dosageInstruction": [{ "text": "20mg daily" }]
+  },
+  {
+    "resourceType": "AllergyIntolerance",
+    "id": "A-001",
+    "clinicalStatus": { "coding": [{ "code": "active" }] },
+    "code": { "coding": [{ "code": "7980", "display": "Penicillin" }] },
+    "patient": { "reference": "Patient/P-5842" },
+    "reaction": [{ "manifestation": [{ "coding": [{ "display": "Anaphylaxis" }] }], "severity": "severe" }]
+  },
+  {
+    "resourceType": "Observation",
+    "id": "O-001",
+    "status": "final",
+    "code": { "coding": [{ "code": "4548-4", "display": "HbA1c" }] },
+    "subject": { "reference": "Patient/P-5842" },
+    "effectiveDateTime": "2026-05-01",
+    "valueQuantity": { "value": 7.2, "unit": "%" },
+    "referenceRange": [{ "text": "<5.7%" }]
+  },
+  {
+    "resourceType": "Observation",
+    "id": "O-002",
+    "status": "final",
+    "code": { "coding": [{ "code": "2093-3", "display": "LDL Cholesterol" }] },
+    "subject": { "reference": "Patient/P-5842" },
+    "effectiveDateTime": "2026-05-01",
+    "valueQuantity": { "value": 98, "unit": "mg/dL" },
+    "referenceRange": [{ "text": "<100 mg/dL" }]
+  },
+  {
+    "resourceType": "Observation",
+    "id": "O-003",
+    "status": "final",
+    "code": { "coding": [{ "code": "33914-3", "display": "eGFR" }] },
+    "subject": { "reference": "Patient/P-5842" },
+    "effectiveDateTime": "2026-05-01",
+    "valueQuantity": { "value": 62, "unit": "mL/min/1.73m²" },
+    "referenceRange": [{ "text": ">60 mL/min" }]
+  },
+  {
+    "resourceType": "Encounter",
+    "id": "E-001",
+    "status": "finished",
+    "type": [{ "coding": [{ "display": "Annual physical" }] }],
+    "subject": { "reference": "Patient/P-5842" },
+    "period": { "start": "2026-05-20", "end": "2026-05-20" }
+  },
+  {
+    "resourceType": "Encounter",
+    "id": "E-002",
+    "status": "finished",
+    "type": [{ "coding": [{ "display": "Asthma follow-up" }] }],
+    "subject": { "reference": "Patient/P-5842" },
+    "period": { "start": "2026-04-15", "end": "2026-04-15" }
+  },
+  {
+    "resourceType": "Immunization",
+    "id": "I-001",
+    "status": "completed",
+    "vaccineCode": { "coding": [{ "code": "140", "display": "Influenza" }] },
+    "patient": { "reference": "Patient/P-5842" },
+    "occurrenceDateTime": "2025-11-15"
+  },
+  {
+    "resourceType": "CarePlan",
+    "id": "CP-001",
+    "status": "active",
+    "intent": "plan",
+    "subject": { "reference": "Patient/P-5842" },
+    "title": "Comprehensive Diabetes & Hypertension Management",
+    "goal": [
+      { "reference": "Goal/G-001" },
+      { "reference": "Goal/G-002" }
+    ]
+  },
+  {
+    "resourceType": "Goal",
+    "id": "G-001",
+    "description": { "text": "Blood pressure <130/80 mmHg" },
+    "subject": { "reference": "Patient/P-5842" },
+    "startDate": "2026-01-01",
+    "targetDate": "2026-08-01"
+  },
+  {
+    "resourceType": "Goal",
+    "id": "G-002",
+    "description": { "text": "HbA1c <7.0%" },
+    "subject": { "reference": "Patient/P-5842" },
+    "startDate": "2026-01-01",
+    "targetDate": "2026-09-01"
+  }
+]

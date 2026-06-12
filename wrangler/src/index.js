@@ -1,15 +1,9 @@
-import { handleSummary } from "./agents/summary.js";
-import { handlePriorAuth } from "./agents/prior-auth.js";
-import { handleGapsInCare } from "./agents/gaps-in-care.js";
-import { handleMedicationSafety } from "./agents/medication-safety.js";
-import { handleCarePlanNavigator } from "./agents/care-plan.js";
-import { handleClinicalTrials } from "./agents/clinical-trials.js";
-import { handleReadmissionRisk } from "./agents/readmission-risk.js";
-import { handleTriage } from "./agents/triage.js";
-import { handleImagingFollowup } from "./agents/imaging-followup.js";
-import { handleLabExplainer } from "./agents/lab-explainer.js";
-import { handleNLQuery } from "./agents/nl-query.js";
-import { handleSDOHReferral } from "./agents/sdoh-referral.js";
+import {
+  handleSummary, handlePriorAuth, handleGapsInCare,
+  handleMedicationSafety, handleCarePlanNavigator, handleClinicalTrials,
+  handleReadmissionRisk, handleTriage, handleImagingFollowup,
+  handleLabExplainer, handleNLQuery, handleSDOHReferral,
+} from "./agents/ai-handler.js";
 import { handleEcosystem } from "./ecosystem-proxy.js";
 import { handleNphiesProxy } from "./agents/nphies-oracle-proxy.js";
 import { handlePatient } from "./agents/patient-api.js";
