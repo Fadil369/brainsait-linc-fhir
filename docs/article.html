@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrainSAIT Enterprise AI-FHIR Integration - Full Article</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; line-height: 1.8; }
+    .header { background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); color: white; padding: 3rem 2rem; text-align: center; }
+    .container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+    h1 { font-size: 2.2rem; margin-bottom: 0.5rem; }
+    h2 { color: #2563eb; margin: 2.5rem 0 1rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; font-size: 1.5rem; }
+    h3 { margin: 1.5rem 0 0.5rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; }
+    th { background: #2563eb; color: white; padding: 0.75rem; text-align: left; }
+    td { padding: 0.75rem; border-bottom: 1px solid #e5e7eb; }
+    tr:hover { background: #f9fafb; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    blockquote { border-left: 4px solid #2563eb; padding: 1rem 1.5rem; margin: 1.5rem 0; background: #f3f4f6; }
+    code { background: #f3f4f6; padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.9rem; }
+    ul, ol { padding-left: 2rem; margin: 1rem 0; }
+    li { margin-bottom: 0.5rem; }
+    hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+    .back { display: inline-block; margin-bottom: 1rem; color: #2563eb; }
+    footer { background: #1f2937; color: white; text-align: center; padding: 2rem; margin-top: 3rem; }
+    footer a { color: #60a5fa; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>BrainSAIT Enterprise AI-FHIR Integration</h1>
+    <p>Unified Implementation & Operations Guide</p>
+  </div>
+
+  <div class="container">
+    <a href="index.html" class="back">← Back to Home</a>
+
+    <p><strong>Bridging Edge Intelligence with Enterprise Healthcare — Bilingual, Agentic, FHIR‑Native</strong></p>
+
+    <blockquote>
+      <p>BrainSAIT is a production‑ready, edge‑computing AI platform that unites Cloudflare Workers AI with InterSystems IRIS. It delivers real‑time clinical reasoning, automated workflows, and patient‑centric insights — validated by a perfect 60/60 technical score and built for the Saudi healthcare ecosystem (NPHIES, Arabic/English, Saudi National ID validation).</p>
+    </blockquote>
+
+    <hr>
+
+    <h2>1. Strategic Vision & Core Pillars</h2>
+    <p>In modern healthcare, a critical gap exists between legacy clinical data (stored in robust systems like InterSystems IRIS) and agile, agentic reasoning powered by LLMs. BrainSAIT closes this gap by moving from <strong>passive data repositories</strong> to <strong>Agentic FHIR</strong> — where AI actively reasons over patient data, anticipates clinician needs, and executes administrative tasks without manual triggering.</p>
+
+    <table>
+      <thead><tr><th>Pillar</th><th>Technology</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Interoperability</strong></td><td>FHIR R4</td><td>Seamless data exchange across any modern EHR</td></tr>
+        <tr><td><strong>Edge Intelligence</strong></td><td>Cloudflare Workers AI</td><td>Low‑latency inference at 250+ global locations</td></tr>
+        <tr><td><strong>Enterprise Persistence</strong></td><td>InterSystems IRIS</td><td>Reliable core for clinical state management</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <h2>2. Technical Architecture</h2>
+    <h3>Edge Layer (Cloudflare)</h3>
+    <ul>
+      <li><strong>Workers AI</strong> – Llama 3.2‑3B‑instruct (optimised for structured JSON generation)</li>
+      <li><strong>D1 Database</strong> – lightweight, distributed SQL storage for FHIR resources</li>
+      <li><strong>Benefit</strong> – Near‑instantaneous inference even at peak volume</li>
+    </ul>
+
+    <h3>Core Layer (InterSystems IRIS)</h3>
+    <ul>
+      <li><strong>Production classes</strong> – <code>BrainSAIT.Production.MasterUnified</code></li>
+      <li><strong>Responsibilities</strong> – Long‑term clinical state, workflow orchestration, audit trail</li>
+    </ul>
+
+    <hr>
+
+    <h2>3. FHIR R4 Data Management</h2>
+    <table>
+      <thead><tr><th>Clinical Data</th><th>FHIR Resource</th><th>Agent Use Case</th></tr></thead>
+      <tbody>
+        <tr><td>Demographics</td><td><code>Patient</code></td><td>Base context for all agents</td></tr>
+        <tr><td>Diagnoses</td><td><code>Condition</code></td><td>Gaps‑in‑Care Finder</td></tr>
+        <tr><td>Prescriptions</td><td><code>MedicationRequest</code></td><td>Medication Safety Assistant</td></tr>
+        <tr><td>Lab results</td><td><code>Observation</code></td><td>Lab Explainer (Grade 6 output)</td></tr>
+        <tr><td>Clinical tasks</td><td><code>Task</code></td><td>Workflow triggers</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <h2>4. The MASTERLINC Framework</h2>
+    <h3>9 Core LINC Agents</h3>
+    <table>
+      <thead><tr><th>Agent</th><th>Role</th><th>FHIR Resources</th></tr></thead>
+      <tbody>
+        <tr><td><strong>MASTERLINC</strong></td><td>Central orchestration</td><td><code>Bundle</code>, <code>Task</code></td></tr>
+        <tr><td><strong>ClaimLinc</strong></td><td>NPHIES claims</td><td><code>Claim</code>, <code>Coverage</code></td></tr>
+        <tr><td><strong>ClinicalLinc</strong></td><td>CDS Hooks support</td><td><code>Condition</code></td></tr>
+        <tr><td><strong>HealthcareLinc</strong></td><td>Patient lifecycle</td><td><code>Patient</code>, <code>Encounter</code></td></tr>
+        <tr><td><strong>TTLinc</strong></td><td>Bilingual translation</td><td><code>Basic</code></td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <h2>5. Security & Compliance</h2>
+    <table>
+      <thead><tr><th>Domain</th><th>Mechanism</th></tr></thead>
+      <tbody>
+        <tr><td>HIPAA auditing</td><td><code>BrainSAIT.Audit.HIPAA</code> logs every access</td></tr>
+        <tr><td>Saudi NPHIES</td><td>ClaimLinc + National ID validation</td></tr>
+        <tr><td>Access control</td><td>RBAC via ComplianceLinc</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <h2>6. Deployment Roadmap</h2>
+    <table>
+      <thead><tr><th>Phase</th><th>Focus</th><th>Actions</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1: Foundation</strong></td><td>Cloudflare Worker + D1</td><td><code>wrangler d1 execute</code></td></tr>
+        <tr><td><strong>2: Core AI</strong></td><td>Deploy 12 agents</td><td>Configure prompts</td></tr>
+        <tr><td><strong>3: Enterprise</strong></td><td>Connect IRIS</td><td>Activate production</td></tr>
+        <tr><td><strong>4: Full Stack</strong></td><td>MASTERLINC + NPHIES</td><td>Enable RBAC</td></tr>
+      </tbody>
+    </table>
+
+    <hr>
+
+    <blockquote style="margin-top: 3rem;">
+      <p><em>"From storage to understanding – BrainSAIT unites edge AI with enterprise healthcare standards, delivering real‑time insights that improve both operational efficiency and patient outcomes."</em></p>
+    </blockquote>
+
+    <p>📦 <strong>Repository</strong> – <a href="https://github.com/Fadil369/brainsait-linc-fhir.git">https://github.com/Fadil369/brainsait-linc-fhir.git</a><br>
+    📄 <strong>License</strong> – MIT</p>
+  </div>
+
+  <footer>
+    <p>© 2026 BrainSAIT Healthcare Platform | <a href="https://github.com/Fadil369/brainsait-linc-fhir">GitHub</a> | MIT License</p>
+  </footer>
+</body>
+</html>
