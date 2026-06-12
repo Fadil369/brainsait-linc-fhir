@@ -45,6 +45,13 @@ import {
   compareProfiles, getProfileRecommendations,
   updateProfile, deleteProfile, getProfileStats,
 } from "./services/basma-profile-features.js";
+import {
+  HF_MODELS, MEDICAL_MODELS, ARABIC_MODELS, FADIL369_MODELS,
+  runCFModel, getEmbeddings, analyzeImage, transcribeAudio,
+  generateSpeech, generateImage, semanticSearch as hfSemanticSearch,
+  selectModel, checkModelHealth, listModels,
+  checkFadil369Models, callFadil369Model, getFadil369Status,
+} from "./services/huggingface-integration.js";
 
 // ═══════════════════════════════════════════════════════════
 // BASMA — بسمه — Context-Aware Healthcare AI
@@ -821,6 +828,258 @@ export async function handleTelegramWebhook(request, env) {
     return new Response("OK");
   }
 
+  // ── HuggingFace Model Commands ──
+
+  // List available models
+  if (text === "/models") {
+    const models = listModels();
+    const byTask = {};
+    models.forEach(m => {
+      if (!byTask[m.task]) byTask[m.task] = [];
+      byTask[m.task].push(m);
+    });
+
+    let response = `🤖 *${lang === "ar" ? "النماذج المتاحة" : "Available Models"}*\n\n`;
+    for (const [task, ms] of Object.entries(byTask)) {
+      response += `*${task}:*\n`;
+      ms.slice(0, 3).forEach(m => {
+        response += `  • \`${m.key}\` — ${m.description}\n`;
+      });
+      if (ms.length > 3) response += `  ... +${ms.length - 3} more\n`;
+      response += "\n";
+    }
+
+    await sendMsg(token, chatId, response, { reply_markup: getServiceButtons(ctx, lang) });
+    return new Response("OK");
+  }
+
+  // Switch model
+  if (text.startsWith("/model")) {
+    const modelKey = text.split(" ")[1];
+    if (modelKey && HF_MODELS[modelKey]) {
+      ctx.collectedInfo = ctx.collectedInfo || {};
+      ctx.collectedInfo.preferredModel = modelKey;
+      await sendMsg(token, chatId, lang === "ar"
+        ? `✅ تم التبديل إلى: ${modelKey} (${HF_MODELS[modelKey].desc})`
+        : `✅ Switched to: ${modelKey} (${HF_MODELS[modelKey].desc})`, {
+        reply_markup: getServiceButtons(ctx, lang),
+      });
+    } else {
+      const models = listModels().slice(0, 10);
+      const list = models.map(m => `• \`${m.key}\` — ${m.description}`).join("\n");
+      await sendMsg(token, chatId, lang === "ar"
+        ? `استخدم: /model اسم_النموذج\n\nالنماذج المتاحة:\n${list}`
+        : `Usage: /model model_name\n\nAvailable models:\n${list}`, {
+        reply_markup: getServiceButtons(ctx, lang),
+      });
+    }
+    return new Response("OK");
+  }
+
+  // Generate image
+  if (text.startsWith("/generate")) {
+    const prompt = text.split(" ").slice(1).join(" ");
+    if (prompt) {
+      await sendAction(token, chatId, "upload_photo");
+      const result = await generateImage(env, prompt, "flux-schnell");
+      if (result.ok) {
+        const form = new FormData();
+        form.append("chat_id", String(chatId));
+        form.append("photo", new Blob([result.image], { type: "image/png" }), "generated.png");
+        form.append("caption", lang === "ar" ? `🎨 تم التوليد: ${prompt.slice(0, 100)}` : `🎨 Generated: ${prompt.slice(0, 100)}`);
+        await tgForm("sendPhoto", token, form);
+      } else {
+        await sendMsg(token, chatId, `❌ ${result.error}`);
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar"
+        ? "استخدم: /generate وصف_الصورة\n\nمثال: /generate طبيب في مستشفى حديث"
+        : "Usage: /generate image_description\n\nExample: /generate doctor in modern hospital");
+    }
+    return new Response("OK");
+  }
+
+  // Analyze image
+  if (text.startsWith("/vision")) {
+    await sendMsg(token, chatId, lang === "ar"
+      ? "📷 أرسل صورة مع وصف (أو فقط صورة) وسأحللها"
+      : "📷 Send an image with a description (or just an image) and I'll analyze it");
+    return new Response("OK");
+  }
+
+  // Check model health
+  if (text === "/health") {
+    await sendAction(token, chatId, "typing");
+    const health = await checkModelHealth(env);
+    const aiStatus = health.workers_ai?.ok ? "🟢" : "🔴";
+    const latency = health.workers_ai?.latency || "?";
+
+    await sendMsg(token, chatId, `🏥 *${lang === "ar" ? "صحة النماذج" : "Model Health"}*\n\n${aiStatus} Workers AI: ${health.workers_ai?.ok ? "OK" : health.workers_ai?.error} (${latency}ms)\n🟢 MiMo: Fallback configured\n🟢 ElevenLabs: Voice ready\n🟢 HuggingFace: ${listModels().length} models`, {
+      reply_markup: getServiceButtons(ctx, lang),
+    });
+    return new Response("OK");
+  }
+
+  // HuggingFace inference
+  if (text.startsWith("/hf")) {
+    const parts = text.split(" ").slice(1);
+    const modelKey = parts[0];
+    const prompt = parts.slice(1).join(" ");
+
+    if (modelKey && prompt) {
+      await sendAction(token, chatId, "typing");
+      const messages = [
+        { role: "system", content: "You are a helpful AI assistant. Respond concisely." },
+        { role: "user", content: prompt },
+      ];
+      const result = await runCFModel(env, modelKey, messages);
+      if (result.ok) {
+        await sendMsg(token, chatId, `🤖 *${modelKey}*\n\n${result.text.slice(0, 3000)}`, {
+          reply_markup: getServiceButtons(ctx, lang),
+        });
+      } else {
+        await sendMsg(token, chatId, `❌ ${result.error}`);
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar"
+        ? "استخدام: /hf نموذج سؤال\n\nمثال: /hf llama-3.3-70b ما هو الذكاء الاصطناعي؟"
+        : "Usage: /hf model question\n\nExample: /hf llama-3.3-70b What is AI?");
+    }
+    return new Response("OK");
+  }
+
+  // Get embeddings
+  if (text.startsWith("/embeddings")) {
+    const content = text.split(" ").slice(1).join(" ");
+    if (content) {
+      await sendAction(token, chatId, "typing");
+      const result = await getEmbeddings(env, content, "bge-m3");
+      if (result.ok) {
+        const preview = result.embeddings[0]?.slice(0, 10).map(v => v.toFixed(4)).join(", ");
+        await sendMsg(token, chatId, `📊 *Embeddings*\n\nModel: ${result.model}\nDimensions: ${result.dimensions}\nPreview: [${preview}...]`, {
+          reply_markup: getServiceButtons(ctx, lang),
+        });
+      } else {
+        await sendMsg(token, chatId, `❌ ${result.error}`);
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar"
+        ? "استخدم: /embeddings نص"
+        : "Usage: /embeddings text");
+    }
+    return new Response("OK");
+  }
+
+  // Smart semantic search
+  if (text.startsWith("/semantic")) {
+    const query = text.split(" ").slice(1).join(" ");
+    if (query) {
+      await sendAction(token, chatId, "typing");
+      // Search FHIR resources
+      const { results: resources } = await fhirSearch(env, "Patient");
+      const documents = resources.map(r =>
+        `${r.name?.[0]?.given?.join(" ")} ${r.name?.[0]?.family || ""} ${r.address?.[0]?.city || ""}`
+      ).filter(Boolean);
+
+      if (documents.length > 0) {
+        const result = await hfSemanticSearch(env, query, documents, 5);
+        if (result.ok) {
+          const list = result.results.map(r =>
+            `• ${r.document} (score: ${r.score.toFixed(3)})`
+          ).join("\n");
+          await sendMsg(token, chatId, `🔍 *${lang === "ar" ? "البحث الدلالي" : "Semantic Search"}*\n\nQuery: "${query}"\n\n${list}`, {
+            reply_markup: getServiceButtons(ctx, lang),
+          });
+        } else {
+          await sendMsg(token, chatId, `❌ ${result.error}`);
+        }
+      } else {
+        await sendMsg(token, chatId, lang === "ar" ? "لا توجد بيانات للبحث" : "No data to search");
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar"
+        ? "استخدم: /semantic كلمة_البحث"
+        : "Usage: /semantic search_query");
+    }
+    return new Response("OK");
+  }
+
+  // ── Fadil369 Medical Models ──
+
+  // Meditron clinical guidelines
+  if (text.startsWith("/meditron")) {
+    const query = text.split(" ").slice(1).join(" ");
+    if (query) {
+      await sendAction(token, chatId, "typing");
+      const result = await callFadil369Model(env, "meditron", query);
+      if (result.ok) {
+        await sendMsg(token, chatId, `🏥 *Meditron — ${lang === "ar" ? "الدليل السريري" : "Clinical Guidelines"}*\n\n${result.text.slice(0, 3000)}`, {
+          reply_markup: getServiceButtons(ctx, lang),
+        });
+      } else {
+        await sendMsg(token, chatId, `❌ ${result.error}`);
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar"
+        ? "🏥 *Meditron — الدليل السريري*\n\nاستخدام: /meditron سؤال\n\nمثال: /meditron ما بروتوكول علاج ارتفاع ضغط الدم؟"
+        : "🏥 *Meditron — Clinical Guidelines*\n\nUsage: /meditron question\n\nExample: /meditron What is the hypertension treatment protocol?");
+    }
+    return new Response("OK");
+  }
+
+  // LLaVA-Med medical imaging
+  if (text.startsWith("/llava-med")) {
+    const query = text.split(" ").slice(1).join(" ");
+    if (query) {
+      await sendAction(token, chatId, "typing");
+      const result = await callFadil369Model(env, "llava-med", query);
+      if (result.ok) {
+        await sendMsg(token, chatId, `📷 *LLaVA-Med — ${lang === "ar" ? "تحليل الصور الطبية" : "Medical Imaging"}*\n\n${result.text.slice(0, 3000)}`, {
+          reply_markup: getServiceButtons(ctx, lang),
+        });
+      } else {
+        await sendMsg(token, chatId, `❌ ${result.error}`);
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar"
+        ? "📷 *LLaVA-Med — تحليل الصور الطبية*\n\nاستخدام: /llava-med وصف_الصورة\n\nمثال: /llava-med شرح صورة أشعة سينية للصدر"
+        : "📷 *LLaVA-Med — Medical Imaging*\n\nUsage: /llava-med image_description\n\nExample: /llava-med Explain this chest X-ray");
+    }
+    return new Response("OK");
+  }
+
+  // Medical QA
+  if (text.startsWith("/medical-qa")) {
+    const query = text.split(" ").slice(1).join(" ");
+    if (query) {
+      await sendAction(token, chatId, "typing");
+      const result = await callFadil369Model(env, "medical-qa", query);
+      if (result.ok) {
+        await sendMsg(token, chatId, `❓ *Medical QA — ${lang === "ar" ? "أسئلة طبية" : "Medical Questions"}*\n\n${result.text.slice(0, 3000)}`, {
+          reply_markup: getServiceButtons(ctx, lang),
+        });
+      } else {
+        await sendMsg(token, chatId, `❌ ${result.error}`);
+      }
+    } else {
+      await sendMsg(token, chatId, lang === "ar"
+        ? "❓ *أسئلة طبية*\n\nاستخدام: /medical-qa سؤال\n\nمثال: /medical-qa ما أعراض السكري من النوع الثاني؟"
+        : "❓ *Medical QA*\n\nUsage: /medical-qa question\n\nExample: /medical-qa What are Type 2 diabetes symptoms?");
+    }
+    return new Response("OK");
+  }
+
+  // Fadil369 model status
+  if (text === "/fadil369") {
+    await sendAction(token, chatId, "typing");
+    const models = await getFadil369Status();
+    const list = models.map(m => `• *${m.key}*: ${m.description}\n  Repo: \`${m.repo}\`\n  Fallback: \`${m.fallback}\``).join("\n\n");
+    await sendMsg(token, chatId, `🧠 *Fadil369 Medical Models*\n\n${list}`, {
+      reply_markup: getServiceButtons(ctx, lang),
+    });
+    return new Response("OK");
+  }
+
   // Profile Builder Conversation
   const profileSession = getProfileSession(chatId);
   if (profileSession.state === "collecting") {
@@ -920,18 +1179,14 @@ export async function handleTelegramSetup(request, env) {
     tg("setMyCommands", token, { commands: [
       { command: "start", description: "🌟 Start BASMA" },
       { command: "sos", description: "🚨 Emergency SOS" },
+      { command: "meditron", description: "🏥 Clinical guidelines" },
+      { command: "llava-med", description: "📷 Medical imaging" },
+      { command: "medical-qa", description: "❓ Medical QA" },
+      { command: "models", description: "🤖 List AI models" },
+      { command: "generate", description: "🎨 Generate image" },
+      { command: "semantic", description: "🔍 Semantic search" },
       { command: "build", description: "🏗️ Build profile" },
-      { command: "profile", description: "📋 My profiles" },
-      { command: "qr", description: "📱 QR code" },
-      { command: "analytics", description: "📊 Profile analytics" },
-      { command: "verify", description: "✅ SCFHS verify" },
-      { command: "search_profile", description: "🔍 Search profiles" },
-      { command: "share", description: "📤 Share profile" },
-      { command: "vcard", description: "📱 Export vCard" },
-      { command: "stats", description: "📊 Statistics" },
-      { command: "embed", description: "🔗 Embed code" },
-      { command: "basma", description: "🏥 Meet BASMA" },
-      { command: "context", description: "👤 My context" },
+      { command: "basma", description: "🌟 Meet BASMA" },
       { command: "help", description: "❓ Help" },
     ]}),
   ]);
