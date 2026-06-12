@@ -40,6 +40,7 @@ export class AIAgent {
     ];
 
     let text = null;
+    let mimoError = null;
 
     // 1. Try MiMo (primary LLM)
     if (this.env?.MIMO_API_KEY) {
@@ -50,6 +51,8 @@ export class AIAgent {
       );
       if (mimo.ok) {
         text = mimo.text;
+      } else {
+        mimoError = mimo.error;
       }
     }
 
@@ -68,9 +71,12 @@ export class AIAgent {
 
     // 3. Neither available
     if (text === null) {
+      const detail = mimoError ? ` MiMo error: ${mimoError}` : "";
       return JSON.stringify({
-        error: "AI unavailable. Configure MIMO_API_KEY (npx wrangler secret put MIMO_API_KEY) or Workers AI binding.",
+        error: `AI unavailable.${detail} Configure MIMO_API_KEY or Workers AI binding.`,
         status: "unavailable",
+        mimoKeyPresent: !!this.env?.MIMO_API_KEY,
+        aiBindingPresent: !!this.env?.AI,
       });
     }
 
