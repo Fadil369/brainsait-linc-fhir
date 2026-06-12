@@ -31,6 +31,11 @@ import {
   getNextQuestion, getRoleButtons, getServiceButtons,
   getProactiveSuggestion, updateSatisfaction, getContextSummary,
 } from "./services/basma-context.js";
+import {
+  PROFILE_SCHEMAS, getProfileSession, clearProfileSession,
+  startProfileBuilder, answerQuestion, generateProfileHTML,
+  publishProfile, getProfile, listProfiles,
+} from "./services/basma-profile-builder.js";
 
 // ═══════════════════════════════════════════════════════════
 // BASMA — بسمه — Context-Aware Healthcare AI
@@ -351,6 +356,83 @@ async function handleCallback(cb, env, token) {
     return;
   }
 
+  // ── Profile Builder ──
+  if (data.startsWith("build_")) {
+    const action = data.replace("build_", "");
+
+    if (["doctor", "partner", "team", "student"].includes(action)) {
+      const result = startProfileBuilder(chatId, action, lang);
+      if (result.ok) {
+        await sendMsgWithVoice(token, chatId, result.message, env, {
+          reply_markup: { inline_keyboard: [
+            [{ text: lang === "ar" ? "❌ إلغاء" : "❌ Cancel", callback_data: "build_cancel" }],
+          ]},
+        }, lang);
+      }
+      return;
+    }
+
+    if (action === "publish") {
+      const session = getProfileSession(chatId);
+      if (session.state === "reviewing") {
+        await sendAction(token, chatId, "typing");
+        const result = await publishProfile(env, session);
+        if (result.ok) {
+          session.state = "published";
+          await sendMsgWithVoice(token, chatId,
+            lang === "ar"
+              ? `✅ *تم نشر الملف الشخصي!*\n\n🔗 ${result.url}\n\nيمكنك مشاركة هذا الرابط مع مرضاك أو زملائك`
+              : `✅ *Profile Published!*\n\n🔗 ${result.url}\n\nShare this link with your patients or colleagues`,
+            env, { reply_markup: getServiceButtons(ctx, lang) }, lang);
+        } else {
+          await sendMsg(token, chatId, `❌ ${result.error}`);
+        }
+      }
+      return;
+    }
+
+    if (action === "edit") {
+      const session = getProfileSession(chatId);
+      session.state = "collecting";
+      session.currentQuestion = 0;
+      const firstQ = session.schema.questions[0];
+      await sendMsgWithVoice(token, chatId,
+        lang === "ar" ? `✏️ *تعديل الملف*\n\n${firstQ.ask}` : `✏️ *Edit Profile*\n\n${firstQ.ask}`,
+        env, {}, lang);
+      return;
+    }
+
+    if (action === "skip") {
+      const session = getProfileSession(chatId);
+      const result = answerQuestion(chatId, "(skipped)");
+      if (result.ok && !result.done) {
+        await sendMsgWithVoice(token, chatId, `${result.message}\n\n📊 ${result.progress}`, env, {
+          reply_markup: { inline_keyboard: [
+            [{ text: lang === "ar" ? "⏭️ تخطي" : "⏭️ Skip", callback_data: "build_skip" },
+             { text: lang === "ar" ? "❌ إلغاء" : "❌ Cancel", callback_data: "build_cancel" }],
+          ]},
+        }, lang);
+      } else if (result.done) {
+        await sendMsgWithVoice(token, chatId, result.message, env, {
+          reply_markup: { inline_keyboard: [
+            [{ text: lang === "ar" ? "✅ نشر الملف" : "✅ Publish Profile", callback_data: "build_publish" },
+             { text: lang === "ar" ? "✏️ تعديل" : "✏️ Edit", callback_data: "build_edit" }],
+            [{ text: lang === "ar" ? "❌ إلغاء" : "❌ Cancel", callback_data: "build_cancel" }],
+          ]},
+        }, lang);
+      }
+      return;
+    }
+
+    if (action === "cancel") {
+      clearProfileSession(chatId);
+      await sendMsg(token, chatId, lang === "ar" ? "❌ تم إلغاء بناء الملف" : "❌ Profile building cancelled", {
+        reply_markup: getServiceButtons(ctx, lang),
+      });
+      return;
+    }
+  }
+
   // ── BASMA Intro ──
   if (data === "basma_intro") {
     await handleBasmaIntro(token, chatId, env, lang);
@@ -531,6 +613,77 @@ export async function handleTelegramWebhook(request, env) {
     return new Response("OK");
   }
 
+  // Profile Builder
+  if (text === "/build") {
+    const buildKeyboard = { inline_keyboard: [
+      [{ text: lang === "ar" ? "🏥 ملف طبيب" : "🏥 Doctor Profile", callback_data: "build_doctor" },
+       { text: lang === "ar" ? "🤝 ملف شريك" : "🤝 Partner Profile", callback_data: "build_partner" }],
+      [{ text: lang === "ar" ? "👥 ملف فريق" : "👥 Team Profile", callback_data: "build_team" },
+       { text: lang === "ar" ? "🎓 ملف طالب" : "🎓 Student Profile", callback_data: "build_student" }],
+    ]};
+    await sendMsgWithVoice(token, chatId,
+      lang === "ar"
+        ? "🌟 *بناء الملف الشخصي*\n\nاختر نوع الملف الذي تريد بناءه:"
+        : "🌟 *Profile Builder*\n\nChoose the type of profile to build:",
+      env, { reply_markup: buildKeyboard }, lang);
+    return new Response("OK");
+  }
+
+  if (text.startsWith("/build_")) {
+    const role = text.slice(7).trim();
+    const result = startProfileBuilder(chatId, role, lang);
+    if (result.ok) {
+      await sendMsgWithVoice(token, chatId, result.message, env, {
+        reply_markup: { inline_keyboard: [
+          [{ text: lang === "ar" ? "❌ إلغاء" : "❌ Cancel", callback_data: "build_cancel" }],
+        ]},
+      }, lang);
+    }
+    return new Response("OK");
+  }
+
+  if (text === "/profile") {
+    const profiles = await listProfiles(env);
+    if (profiles.ok && profiles.profiles.length > 0) {
+      const list = profiles.profiles.map(p => `${p.role === "doctor" ? "🏥" : p.role === "partner" ? "🤝" : p.role === "team" ? "👥" : "🎓"} [${p.name}](${p.url})`).join("\n");
+      await sendMsg(token, chatId, `📋 *${lang === "ar" ? "الملفات الشخصية" : "Profiles"}*\n\n${list}`, {
+        reply_markup: getServiceButtons(ctx, lang),
+      });
+    } else {
+      await sendMsg(token, chatId, lang === "ar" ? "لا توجد ملفات شخصية بعد. ابدأ بـ /build" : "No profiles yet. Start with /build", {
+        reply_markup: getServiceButtons(ctx, lang),
+      });
+    }
+    return new Response("OK");
+  }
+
+  // Profile Builder Conversation
+  const profileSession = getProfileSession(chatId);
+  if (profileSession.state === "collecting") {
+    const result = answerQuestion(chatId, text);
+    if (result.ok) {
+      if (result.done) {
+        // Show review and publish button
+        await sendMsgWithVoice(token, chatId, result.message, env, {
+          reply_markup: { inline_keyboard: [
+            [{ text: lang === "ar" ? "✅ نشر الملف" : "✅ Publish Profile", callback_data: "build_publish" },
+             { text: lang === "ar" ? "✏️ تعديل" : "✏️ Edit", callback_data: "build_edit" }],
+            [{ text: lang === "ar" ? "❌ إلغاء" : "❌ Cancel", callback_data: "build_cancel" }],
+          ]},
+        }, lang);
+      } else {
+        // Next question
+        await sendMsgWithVoice(token, chatId, `${result.message}\n\n📊 ${result.progress}`, env, {
+          reply_markup: { inline_keyboard: [
+            [{ text: lang === "ar" ? "⏭️ تخطي" : "⏭️ Skip", callback_data: "build_skip" },
+             { text: lang === "ar" ? "❌ إلغاء" : "❌ Cancel", callback_data: "build_cancel" }],
+          ]},
+        }, lang);
+      }
+    }
+    return new Response("OK");
+  }
+
   if (text === "/sos") {
     await sendAction(token, chatId, "typing");
     const sos = await handleEmergencySOS(ctx.patientId || "1", text.split(" ").slice(1).join(" ") || "emergency", callAgent, env, lang);
@@ -603,6 +756,8 @@ export async function handleTelegramSetup(request, env) {
     tg("setMyCommands", token, { commands: [
       { command: "start", description: "🌟 Start BASMA" },
       { command: "sos", description: "🚨 Emergency SOS" },
+      { command: "build", description: "🏗️ Build profile" },
+      { command: "profile", description: "📋 My profiles" },
       { command: "basma", description: "🏥 Meet BASMA" },
       { command: "context", description: "👤 My context" },
       { command: "help", description: "❓ Help" },
