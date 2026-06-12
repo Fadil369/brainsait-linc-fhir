@@ -402,8 +402,8 @@ brainsait-linc-fhir/
 │       ├── BrainSAIT.Validation.*# Saudi National ID validator
 │       └── contest/              # 12 contest agent classes
 ├── test/                         # Test suites
-│   ├── e2e.js                    # 417 E2E tests
-│   └── integration-audit.js      # 208 integration checks
+│   ├── e2e.js                    # 414 E2E tests
+│   └── integration-audit.js      # 216 integration checks
 └── package.json
 ```
 
@@ -417,6 +417,25 @@ npm test
 ```
 
 > Note: E2E tests validate data structures, constants, and agent definitions offline (no server required). Integration audit requires the worker to be running at `http://localhost:8787`.
+
+### Production Verification (v3.2.0 — commit `a6a5650`)
+
+Deployed at `https://brainsait-linc-fhir-unified.brainsait-fadil.workers.dev` and `iris-fhir.brainsait.org`:
+
+| Category | Result |
+|----------|--------|
+| 12 Contest AI Agents | ✅ All HTTP 200, valid structured JSON |
+| FHIR R4 Server (20 resource types, CRUD) | ✅ FHIR 4.0.1, D1 connected |
+| 5 Orchestrator Chains | ✅ All HTTP 200 |
+| Patient API (6 endpoints, bilingual) | ✅ All HTTP 200, Arabic/English |
+| Ecosystem Proxy (29 backends, 54 workers) | ✅ |
+| NPHIES Network (SAR 835.7M, 98.6% approval) | ✅ |
+| Oracle Bridge (6 hospitals, 22 credentials) | ✅ |
+| Workers Catalog (24 workers) | ✅ |
+| Domain Bridge (15 services, 13 healthy) | ✅ |
+| Health Endpoint | ✅ `status=ok` |
+| Frontend SPA (`brainsait-linc-fhir.pages.dev`) | ✅ HTTP 200 |
+| Offline Test Suite | ✅ 414/414 E2E, 213/216 integration (0 failures) |
 
 ---
 
