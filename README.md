@@ -6,10 +6,10 @@
 **AI Models:**
 | Priority | Provider | Configuration |
 |----------|----------|---------------|
-| 1° | **MiMo Token Plan API** (OpenAI/Anthropic-compatible) | `MIMO_API_KEY` secret + `MIMO_API_BASE` + `MIMO_MODEL` in vars |
-| 2° | **Cloudflare Workers AI** (`@cf/meta/llama-3.2-3b-instruct`) | `env.AI` binding (no config needed) |
+| 1° | **Cloudflare Workers AI** (`@cf/meta/llama-3.2-3b-instruct`) | `env.AI` binding (no config needed) |
+| 2° | **MiMo Token Plan API** (Xiaomi `mimo-v2.5-pro`) | `MIMO_API_KEY` secret + `MIMO_API_BASE` + `MIMO_MODEL` in vars |
 
-12 AI agents powered by LLM reasoning over FHIR patient data, served at the edge. MiMo is the default LLM; Workers AI acts as automatic fallback when MiMo is unavailable.
+12 AI agents powered by LLM reasoning over FHIR patient data, served at the edge. Workers AI is the default LLM (runs natively on Cloudflare edge); MiMo acts as automatic fallback.
 
 ---
 
@@ -103,9 +103,19 @@ This creates a FHIR patient with conditions (hypertension, diabetes, asthma, CKD
 
 ### AI Provider Setup
 
-The app supports two LLM providers. MiMo is the default; Workers AI is the automatic fallback.
+The app supports two LLM providers. Workers AI is the default (runs on Cloudflare edge); MiMo is the automatic fallback.
 
-#### Option A: MiMo Token Plan API (Default)
+#### Option A: Cloudflare Workers AI (Default)
+
+Add an AI binding to your `wrangler.toml`:
+```toml
+[ai]
+binding = "AI"
+```
+
+No secret or API key needed — Workers AI is billed to your Cloudflare account.
+
+#### Option B: MiMo Token Plan API (Fallback)
 
 ```bash
 # Set the API key as a Cloudflare secret
@@ -120,15 +130,7 @@ MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com"
 MIMO_MODEL = "mimo-v2.5-pro"
 ```
 
-#### Option B: Cloudflare Workers AI (Fallback)
-
-Add an AI binding to your `wrangler.toml`:
-```toml
-[ai]
-binding = "AI"
-```
-
-No secret or API key needed — Workers AI is billed to your Cloudflare account.
+> **Note:** MiMo (`mimo-v2.5-pro`) is Xiaomi's proprietary model served via `token-plan-sgp.xiaomimimo.com`. It may be unreachable from Cloudflare Workers edge due to network restrictions. Use Workers AI for reliable edge inference.
 
 #### Verify LLM is Working
 
@@ -136,7 +138,7 @@ No secret or API key needed — Workers AI is billed to your Cloudflare account.
 curl -s "http://localhost:8787/api/contest/summary?patient=P-5842&role=doctor" | jq .
 ```
 
-The response includes `"status"` field. If MiMo is active, the response contains structured clinical JSON. If neither provider is configured, you'll get `{"error": "AI unavailable...", "status": "unavailable"}`.
+The response includes structured clinical JSON when AI is active. If neither provider is configured, you'll get `{"error": "AI unavailable...", "status": "unavailable"}`.
 
 ### Cloudflare Workers (Local Development)
 
@@ -294,11 +296,11 @@ The `AIAgent.reason()` method resolves the LLM provider in this order:
 
 | Priority | Provider | Condition | Endpoint |
 |----------|----------|-----------|----------|
-| 1° | **MiMo Token Plan API** | `env.MIMO_API_KEY` exists | `MIMO_API_BASE/v1/chat/completions` (OpenAI) → `MIMO_API_BASE/anthropic` (Anthropic fallback) |
-| 2° | **Cloudflare Workers AI** | `env.AI` binding exists | `@cf/meta/llama-3.2-3b-instruct` |
+| 1° | **Cloudflare Workers AI** | `env.AI` binding exists | `@cf/meta/llama-3.2-3b-instruct` (runs on CF edge) |
+| 2° | **MiMo Token Plan API** | `env.MIMO_API_KEY` exists | `MIMO_API_BASE/v1/chat/completions` (Xiaomi `mimo-v2.5-pro`) |
 | 3° | Graceful error | Neither configured | `{"error": "AI unavailable...", "status": "unavailable"}` |
 
-MiMo auto-detects the endpoint shape: tries OpenAI-compatible first, falls back to Anthropic Messages on 404/405. 30s timeout, 2 retries with exponential backoff.
+Workers AI runs natively on Cloudflare edge (250+ locations) with zero cold-start latency. MiMo (Xiaomi's `mimo-v2.5-pro`) provides an external fallback — requires network access from Workers to `token-plan-sgp.xiaomimimo.com`.
 
 ### LLM Configuration
 
@@ -336,13 +338,14 @@ Request → AIAgent class → IrisConnector.getPatientContext(patientId)
                               ↓
     AIAgent.reason(systemPrompt, userMessage)
                               ↓
-    ┌─ MiMo (env.MIMO_API_KEY) ─────────────────────┐
-    │  callMiMo(messages, systemPrompt, env)         │
-    │  OpenAI shape → Anthropic shape on 404/405     │
-    └────────────────────────────────────────────────┘
-                              ↓ (fallback on failure)
     ┌─ Workers AI (env.AI) ──────────────────────────┐
     │  env.AI.run(@cf/meta/llama-3.2-3b-instruct)    │
+    │  (runs natively on Cloudflare edge)            │
+    └────────────────────────────────────────────────┘
+                              ↓ (fallback on failure)
+    ┌─ MiMo (env.MIMO_API_KEY) ─────────────────────┐
+    │  callMiMo(messages, systemPrompt, env)         │
+    │  Xiaomi mimo-v2.5-pro via HTTP                 │
     └────────────────────────────────────────────────┘
                               ↓
     Structured JSON → Agent-specific handler → Response

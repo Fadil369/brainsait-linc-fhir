@@ -40,10 +40,23 @@ export class AIAgent {
     ];
 
     let text = null;
-    let mimoError = null;
+    let altError = null;
 
-    // 1. Try MiMo (primary LLM)
-    if (this.env?.MIMO_API_KEY) {
+    // 1. Try Workers AI (runs natively on Cloudflare edge — lowest latency)
+    if (this.env?.AI) {
+      try {
+        const raw = await this.env.AI.run(CF_MODEL, { messages, max_tokens: 1500 });
+        text = typeof raw.response === "string" ? raw.response
+              : raw.response?.response || raw.response?.choices?.[0]?.message?.content
+              || raw.choices?.[0]?.message?.content
+              || JSON.stringify(raw);
+      } catch (err) {
+        altError = err?.message;
+      }
+    }
+
+    // 2. Fall back to MiMo (external API — may be unreachable from CF edge)
+    if (text === null && this.env?.MIMO_API_KEY) {
       const mimo = await callMiMo(
         [{ role: "system", content: systemPrompt + "\n\nCRITICAL: Return ONLY valid JSON. NO markdown, NO code fences, NO explanation. Start with { and end with }." },
          { role: "user", content: userMessage + "\n\nRespond ONLY with raw JSON." }],
@@ -52,31 +65,17 @@ export class AIAgent {
       if (mimo.ok) {
         text = mimo.text;
       } else {
-        mimoError = mimo.error;
-      }
-    }
-
-    // 2. Fall back to Workers AI
-    if (text === null && this.env?.AI) {
-      try {
-        const raw = await this.env.AI.run(CF_MODEL, { messages, max_tokens: 1500 });
-        text = typeof raw.response === "string" ? raw.response
-              : raw.response?.response || raw.response?.choices?.[0]?.message?.content
-              || raw.choices?.[0]?.message?.content
-              || JSON.stringify(raw);
-      } catch (err) {
-        text = null;
+        altError = mimo.error;
       }
     }
 
     // 3. Neither available
     if (text === null) {
-      const detail = mimoError ? ` MiMo error: ${mimoError}` : "";
       return JSON.stringify({
-        error: `AI unavailable.${detail} Configure MIMO_API_KEY or Workers AI binding.`,
+        error: `AI unavailable.${altError ? ` ${altError}` : ""} Configure Workers AI binding or MIMO_API_KEY.`,
         status: "unavailable",
-        mimoKeyPresent: !!this.env?.MIMO_API_KEY,
         aiBindingPresent: !!this.env?.AI,
+        mimoKeyPresent: !!this.env?.MIMO_API_KEY,
       });
     }
 

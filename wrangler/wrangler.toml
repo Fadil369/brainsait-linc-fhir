@@ -16,6 +16,9 @@ crons = ["*/10 * * * *"]
 [observability]
 enabled = true
 
+[ai]
+binding = "AI"
+
 [vars]
 MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com"
 MIMO_MODEL = "mimo-v2.5-pro"
