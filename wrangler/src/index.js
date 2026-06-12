@@ -199,8 +199,9 @@ export default {
       });
     }
 
-    return new Response("BrainSAIT LINC FHIR Unified API — " + pagesUrl, {
-      headers: { "content-type": "text/plain", "access-control-allow-origin": "*" },
+    return new Response("BrainSAIT LINC FHIR Unified API", {
+      status: 200,
+      headers: { "content-type": "text/plain", "access-control-allow-origin": "*", "x-proxy": "brainsait-catch-all" },
     });
   },
 };

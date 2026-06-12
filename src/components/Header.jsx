@@ -3,7 +3,7 @@ import { Brain, Cloud, Activity, Globe } from "lucide-react";
 
 export default function Header({ workerCount, agentCount }) {
   return (
-    <header className="sticky top-0 z-50 border-b border-blue-900/30 bg-[#0a1628]/95 backdrop-blur-xl">
+    <header dir="ltr" className="sticky top-0 z-50 border-b border-blue-900/30 bg-[#0a1628]/95 backdrop-blur-xl">
       <div className="flex items-center justify-between px-8 py-3.5">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 shadow-lg shadow-blue-600/20">
@@ -13,8 +13,8 @@ export default function Header({ workerCount, agentCount }) {
             <h1 className="text-base font-bold tracking-tight text-white">
               BrainSAIT
             </h1>
-            <span className="hidden text-[11px] text-cyan-400 md:inline font-mono">
-              FHIR R4 · NPHIES · Cloudflare
+            <span className="text-[11px] text-cyan-400 font-mono">
+              LINC Agent Unification — FHIR R4 · NPHIES · Cloudflare
             </span>
           </div>
         </div>

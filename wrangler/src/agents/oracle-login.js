@@ -14,8 +14,9 @@ const ORACLE_PORTALS = {
 };
 
 export async function handleOracleLogin(request, env) {
-  const url = new URL(request.url);
-  const path = url.pathname;
+  env = env || {};
+  const url = new URL(request?.url || "http://localhost");
+  const path = url.pathname || "";
 
   // /api/oracle/login/:hospital — attempt login via Browser Rendering
   const match = path.match(/^\/api\/oracle\/login\/([a-z]+)$/);

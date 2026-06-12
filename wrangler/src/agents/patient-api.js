@@ -5,7 +5,8 @@
 import { getPatientData, patientTimeline, careGapsSummary, fiveYearSummary } from "./patient-engine.js";
 
 export async function handlePatient(request, env) {
-  const url = new URL(request.url);
+  env = env || {};
+  const url = new URL(request?.url || "http://localhost");
   const patientId = url.searchParams.get("patient") || "P-5842";
   const lang = url.searchParams.get("lang") || "en";
 

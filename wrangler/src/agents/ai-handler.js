@@ -1,11 +1,13 @@
 import { AIAgent } from "../services/ai-agent.js";
 
 function getPatientId(request) {
-  return new URL(request.url).searchParams.get("patient") || "P-5842";
+  try { return new URL(request?.url || "http://localhost").searchParams.get("patient") || "P-5842"; }
+  catch { return "P-5842"; }
 }
 
 function getParam(request, name, def) {
-  return new URL(request.url).searchParams.get(name) || def;
+  try { return new URL(request?.url || "http://localhost").searchParams.get(name) || def; }
+  catch { return def || "default"; }
 }
 
 function tryParse(str) {
@@ -15,19 +17,28 @@ function tryParse(str) {
 const FALLBACK = { error: "AI unable to generate structured response", status: "fallback" };
 
 async function handle(agentType, env, request, extraPrompts) {
-  const patientId = getPatientId(request);
-  const agent = new AIAgent(agentType, extraPrompts.goal, env);
-  const context = await agent.getPatientContext(patientId);
-  let result = await agent[extraPrompts.method](context, ...extraPrompts.args);
-  let parsed = tryParse(result);
-  if (!parsed) {
-    const repaired = result.replace(/[^\[\]{}",:.\w\s\-_\/]/g, "").replace(/,(\s*[}\]])/g, "$1");
-    parsed = tryParse(repaired) || { ...FALLBACK, raw: result.slice(0, 500) };
-    result = JSON.stringify(parsed);
+  env = env || {};
+  extraPrompts = extraPrompts || {};
+  try {
+    const patientId = getPatientId(request);
+    const agent = new AIAgent(agentType, extraPrompts.goal || "General healthcare", env);
+    const context = await agent.getPatientContext(patientId);
+    let result = await agent[extraPrompts.method || "generateClinicalSummary"](context, ...(extraPrompts.args || []));
+    let parsed = tryParse(result);
+    if (!parsed) {
+      const repaired = result.replace(/[^\[\]{}",:.\w\s\-_\/]/g, "").replace(/,(\s*[}\]])/g, "$1");
+      parsed = tryParse(repaired) || { ...FALLBACK, raw: result.slice(0, 500) };
+      result = JSON.stringify(parsed);
+    }
+    return new Response(result, {
+      headers: { "content-type": "application/json", "access-control-allow-origin": "*" },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: "AI handler error", detail: err.message, status: "error" }), {
+      status: 500,
+      headers: { "content-type": "application/json", "access-control-allow-origin": "*" },
+    });
   }
-  return new Response(result, {
-    headers: { "content-type": "application/json", "access-control-allow-origin": "*" },
-  });
 }
 
 export const handleSummary = (req, env) => handle("Summary", env, req, {

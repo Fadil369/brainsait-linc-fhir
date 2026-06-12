@@ -1,7 +1,8 @@
 import { getUnifiedServices, getDomainSummary } from "../domain-bridge.js";
 
 export async function handleDomains(request, env) {
-  const url = new URL(request.url);
+  env = env || {};
+  const url = new URL(request?.url || "http://localhost");
 
   // /api/domains — unified view of ALL services across both zones
   if (url.pathname === "/api/domains") {

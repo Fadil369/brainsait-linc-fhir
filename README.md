@@ -1,9 +1,15 @@
 # BrainSAIT Unified AI Agents for FHIR
 
 > **InterSystems Programming Contest Submission** — *AI Agents for FHIR*
-> 🏆 12 Contest Tasks | 60/60 Bonus Points | FHIR R4 | NPHIES | Cloudflare Workers AI
+> 🏆 12 Contest Tasks | 60/60 Bonus Points | FHIR R4 | NPHIES | Multi-Provider LLM
 
-**AI Model:** `@cf/meta/llama-3.2-3b-instruct` (Cloudflare Workers AI) — 12 AI agents powered by LLM reasoning over FHIR patient data, served at the edge.
+**AI Models:**
+| Priority | Provider | Configuration |
+|----------|----------|---------------|
+| 1° | **MiMo Token Plan API** (OpenAI/Anthropic-compatible) | `MIMO_API_KEY` secret + `MIMO_API_BASE` + `MIMO_MODEL` in vars |
+| 2° | **Cloudflare Workers AI** (`@cf/meta/llama-3.2-3b-instruct`) | `env.AI` binding (no config needed) |
+
+12 AI agents powered by LLM reasoning over FHIR patient data, served at the edge. MiMo is the default LLM; Workers AI acts as automatic fallback when MiMo is unavailable.
 
 ---
 
@@ -11,7 +17,7 @@
 
 **BrainSAIT LINC FHIR** is a fully integrated platform that unifies **9 LINC AI agents** with **12 contest-ready AI agents** for the InterSystems IRIS ecosystem. It provides a bilingual (Arabic/English) dashboard, Cloudflare Workers deployment, and ObjectScript production classes — all working together under a single MASTERLINC orchestrator.
 
-All 12 AI agents use **Cloudflare Workers AI** (`@cf/meta/llama-3.2-3b-instruct`) for LLM-powered clinical reasoning. Each agent retrieves real FHIR patient data (via D1 database or IRIS) and generates structured JSON responses with:
+All 12 AI agents use **MiMo Token Plan API** as the primary LLM provider, with automatic fallback to **Cloudflare Workers AI** (`@cf/meta/llama-3.2-3b-instruct`) when MiMo is unavailable. Each agent retrieves real FHIR patient data (via D1 database or IRIS) and generates structured JSON responses with:
 - Clinical summaries, prior authorization evaluations, care gaps identification
 - Medication safety reviews, care plans, clinical trial matching
 - Readmission risk scoring, triage assessment, lab result explanations
@@ -23,10 +29,10 @@ All 12 AI agents use **Cloudflare Workers AI** (`@cf/meta/llama-3.2-3b-instruct`
 Client / Dashboard (React + shadcn/ui, port 3000)
        │
        ▼
-  Cloudflare Worker (port 8787 local / *.brainsait.org production)
-       │
-       ├── /api/contest/*       ──► 12 AI Agents (Cloudflare Workers AI)
-       │                           Llama 3.2-3B + FHIR patient context
+   Cloudflare Worker (port 8787 local / *.brainsait.org production)
+        │
+        ├── /api/contest/*       ──► 12 AI Agents (MiMo API → Workers AI fallback)
+        │                           FHIR patient context → structured JSON
        ├── /fhir/*              ──► FHIR R4 server (D1 database)
        ├── /api/agents/*        ──► 9 LINC Agent definitions
        ├── /api/workers/*       ──► Cloudflare Worker catalog
@@ -94,6 +100,43 @@ npx wrangler d1 execute brainsait-healthcare-d1 --command="SELECT COUNT(*) as co
 ```
 
 This creates a FHIR patient with conditions (hypertension, diabetes, asthma, CKD), medications, allergies, lab results, encounters, immunizations, and care plans — all data needed by the 12 AI agents.
+
+### AI Provider Setup
+
+The app supports two LLM providers. MiMo is the default; Workers AI is the automatic fallback.
+
+#### Option A: MiMo Token Plan API (Default)
+
+```bash
+# Set the API key as a Cloudflare secret
+npx wrangler secret put MIMO_API_KEY
+# Paste your MiMo API key when prompted
+```
+
+The base URL and model are pre-configured in `wrangler/wrangler.toml`:
+```toml
+[vars]
+MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com"
+MIMO_MODEL = "tp-s5blprvpranxs2a175656bbu8y83nsm9no5825swjlldhxvg"
+```
+
+#### Option B: Cloudflare Workers AI (Fallback)
+
+Add an AI binding to your `wrangler.toml`:
+```toml
+[ai]
+binding = "AI"
+```
+
+No secret or API key needed — Workers AI is billed to your Cloudflare account.
+
+#### Verify LLM is Working
+
+```bash
+curl -s "http://localhost:8787/api/contest/summary?patient=P-5842&role=doctor" | jq .
+```
+
+The response includes `"status"` field. If MiMo is active, the response contains structured clinical JSON. If neither provider is configured, you'll get `{"error": "AI unavailable...", "status": "unavailable"}`.
 
 ### Cloudflare Workers (Local Development)
 
@@ -245,11 +288,33 @@ curl "http://localhost:8787/api/contest/sdoh-referral?needs=food,transportation"
 
 ## 🤖 AI Implementation
 
-### LLM Model
-- **Provider:** Cloudflare Workers AI (edge inference)
-- **Model:** `@cf/meta/llama-3.2-3b-instruct` — 3B parameter instruction-tuned LLM
-- **Deployment:** Runs at Cloudflare edge (250+ locations), zero cold-start latency
-- **Fallback:** Agents can also run with any OpenAI-compatible API via configuration
+### LLM Resolution Order
+
+The `AIAgent.reason()` method resolves the LLM provider in this order:
+
+| Priority | Provider | Condition | Endpoint |
+|----------|----------|-----------|----------|
+| 1° | **MiMo Token Plan API** | `env.MIMO_API_KEY` exists | `MIMO_API_BASE/v1/chat/completions` (OpenAI) → `MIMO_API_BASE/anthropic` (Anthropic fallback) |
+| 2° | **Cloudflare Workers AI** | `env.AI` binding exists | `@cf/meta/llama-3.2-3b-instruct` |
+| 3° | Graceful error | Neither configured | `{"error": "AI unavailable...", "status": "unavailable"}` |
+
+MiMo auto-detects the endpoint shape: tries OpenAI-compatible first, falls back to Anthropic Messages on 404/405. 30s timeout, 2 retries with exponential backoff.
+
+### LLM Configuration
+
+```toml
+# wrangler.toml — MiMo vars (safe to commit)
+[vars]
+MIMO_API_BASE = "https://token-plan-sgp.xiaomimimo.com"
+MIMO_MODEL = "tp-s5blprvpranxs2a175656bbu8y83nsm9no5825swjlldhxvg"
+```
+
+```bash
+# Set the API key as a secret (never commit)
+npx wrangler secret put MIMO_API_KEY
+```
+
+Workers AI requires no additional config — just the `env.AI` binding in `wrangler.toml`.
 
 ### How the AI Agents Work
 
@@ -258,7 +323,7 @@ Each agent follows this pipeline:
 1. **Receive request** — Patient ID and optional parameters (role, symptoms, query, etc.)
 2. **Fetch FHIR context** — Retrieves real patient data from D1 database or IRIS: Patient demographics, active conditions, medications, allergies, encounters, lab observations
 3. **Construct LLM prompt** — Domain-specific system prompt with patient FHIR context
-4. **Run inference** — Calls Cloudflare Workers AI with `@cf/meta/llama-3.2-3b-instruct`
+4. **Run inference** — MiMo primary → Workers AI fallback, with JSON-forcing instructions
 5. **Parse JSON output** — Extracts structured JSON response, auto-repairs malformed JSON
 6. **Return FHIR-native response** — Every agent returns FHIR-compatible JSON
 
@@ -271,7 +336,14 @@ Request → AIAgent class → IrisConnector.getPatientContext(patientId)
                               ↓
     AIAgent.reason(systemPrompt, userMessage)
                               ↓
-    env.AI.run("@cf/meta/llama-3.2-3b-instruct", { messages, max_tokens: 1500 })
+    ┌─ MiMo (env.MIMO_API_KEY) ─────────────────────┐
+    │  callMiMo(messages, systemPrompt, env)         │
+    │  OpenAI shape → Anthropic shape on 404/405     │
+    └────────────────────────────────────────────────┘
+                              ↓ (fallback on failure)
+    ┌─ Workers AI (env.AI) ──────────────────────────┐
+    │  env.AI.run(@cf/meta/llama-3.2-3b-instruct)    │
+    └────────────────────────────────────────────────┘
                               ↓
     Structured JSON → Agent-specific handler → Response
 ```
@@ -313,7 +385,12 @@ brainsait-linc-fhir/
 │   ├── wrangler.toml             # Worker configuration
 │   └── src/
 │       ├── index.js              # Router with 20+ endpoints
-│       └── agents/               # 12 contest agent handlers
+│       ├── agents/               # 12 contest agent handlers
+│       └── services/
+│           ├── ai-agent.js       # AIAgent class (MiMo → Workers AI)
+│           ├── mimo-client.js    # MiMo Token Plan API client
+│           ├── iris-connector.js # IRIS / D1 FHIR connector
+│           └── auth.js           # CORS & auth utilities
 ├── intersystems/                 # InterSystems IRIS
 │   ├── module.xml                # IPM package manifest
 │   └── src/

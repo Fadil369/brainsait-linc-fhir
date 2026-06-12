@@ -1,4 +1,7 @@
 import { IrisConnector } from "./iris-connector.js";
+import { callMiMo } from "./mimo-client.js";
+
+const CF_MODEL = "@cf/meta/llama-3.2-3b-instruct";
 
 export class AIAgent {
   constructor(name, goal, env) {
@@ -6,7 +9,6 @@ export class AIAgent {
     this.goal = goal;
     this.env = env;
     this.iris = new IrisConnector(env);
-    this.model = "@cf/meta/llama-3.2-3b-instruct";
     this.maxSteps = 5;
     this.memory = [];
   }
@@ -37,14 +39,42 @@ export class AIAgent {
       { role: "user", content: userMessage + "\n\nRespond ONLY with raw JSON." },
     ];
 
-    if (!this.env.AI) {
-      return JSON.stringify({ error: "AI binding not available", status: "unavailable" });
+    let text = null;
+
+    // 1. Try MiMo (primary LLM)
+    if (this.env?.MIMO_API_KEY) {
+      const mimo = await callMiMo(
+        [{ role: "system", content: systemPrompt + "\n\nCRITICAL: Return ONLY valid JSON. NO markdown, NO code fences, NO explanation. Start with { and end with }." },
+         { role: "user", content: userMessage + "\n\nRespond ONLY with raw JSON." }],
+        systemPrompt, this.env
+      );
+      if (mimo.ok) {
+        text = mimo.text;
+      }
     }
-    const raw = await this.env.AI.run(this.model, { messages, max_tokens: 1500 });
-    let text = typeof raw.response === "string" ? raw.response
+
+    // 2. Fall back to Workers AI
+    if (text === null && this.env?.AI) {
+      try {
+        const raw = await this.env.AI.run(CF_MODEL, { messages, max_tokens: 1500 });
+        text = typeof raw.response === "string" ? raw.response
               : raw.response?.response || raw.response?.choices?.[0]?.message?.content
               || raw.choices?.[0]?.message?.content
               || JSON.stringify(raw);
+      } catch (err) {
+        text = null;
+      }
+    }
+
+    // 3. Neither available
+    if (text === null) {
+      return JSON.stringify({
+        error: "AI unavailable. Configure MIMO_API_KEY (npx wrangler secret put MIMO_API_KEY) or Workers AI binding.",
+        status: "unavailable",
+      });
+    }
+
+    // 4. JSON repair (shared across providers)
     text = String(text).replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
     const jsonMatch = text.match(/\{.*\}/s);
     if (jsonMatch) text = this._repairJSON(jsonMatch[0]);

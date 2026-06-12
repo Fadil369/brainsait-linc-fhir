@@ -33,7 +33,8 @@ const ORACLE_CONFIG = {
 };
 
 export async function handleNphiesProxy(request, env) {
-  const url = new URL(request.url);
+  env = env || {};
+  const url = new URL(request?.url || "http://localhost");
 
   // /api/nphies/network — cached live data (verified from api.brainsait.org)
   if (url.pathname === "/api/nphies/network") {

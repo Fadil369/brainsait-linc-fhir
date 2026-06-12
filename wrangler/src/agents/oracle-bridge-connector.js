@@ -37,8 +37,9 @@ async function callOracleBridge(path, method = "GET", body = null) {
 }
 
 export async function handleOracleBridge(request, env) {
-  const url = new URL(request.url);
-  const path = url.pathname;
+  env = env || {};
+  const url = new URL(request?.url || "http://localhost");
+  const path = url.pathname || "";
 
   // /api/oracle/bridge — list available hospitals and their Oracle portals
   if (path === "/api/oracle/bridge") {

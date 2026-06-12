@@ -29,9 +29,10 @@ async function initDB(env) {
 
 export async function handleFHIR(request, env) {
   const url = new URL(request.url);
-  const path = url.pathname;
-  const method = request.method;
-  const dbReady = await initDB(env);
+  const path = url.pathname || "";
+  const method = request.method || "GET";
+  env = env || {};
+const dbReady = await initDB(env);
 
   // Capability Statement
   if (path === "/fhir/metadata" || path === "/fhir" || path === "/metadata") {
